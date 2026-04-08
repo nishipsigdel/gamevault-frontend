@@ -1,0 +1,256 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;500;600&family=Share+Tech+Mono&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --neon: #00f5ff;
+    --plasma: #a030f0;
+    --fire: #ff4500;
+    --bg-primary: #080c14;
+    --bg-secondary: #0d1220;
+    --bg-card: #111827;
+    --border: rgba(0, 245, 255, 0.15);
+    --text-primary: #e8f0ff;
+    --text-secondary: #8899bb;
+    --text-muted: #445577;
+    --glow: 0 0 20px rgba(0, 245, 255, 0.3);
+    --glow-plasma: 0 0 20px rgba(160, 48, 240, 0.3);
+  }
+
+  .light {
+    --neon: #7c3aed;
+    --plasma: #a030f0;
+    --fire: #ff4500;
+    --bg-primary: #f0f2f8;
+    --bg-secondary: #e4e8f5;
+    --bg-card: #ffffff;
+    --border: rgba(124, 58, 237, 0.2);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --glow: 0 0 20px rgba(124, 58, 237, 0.2);
+    --glow-plasma: 0 0 20px rgba(160, 48, 240, 0.15);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Rajdhani', sans-serif;
+    letter-spacing: 0.02em;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--neon) var(--bg-secondary);
+  }
+}
+
+@layer components {
+  .game-bg {
+    background-color: var(--bg-primary);
+    background-image: var(--tw-bg-grid, none);
+    background-size: 40px 40px;
+  }
+
+  .dark .game-bg {
+    --tw-bg-grid: linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+  }
+
+  .light .game-bg {
+    --tw-bg-grid: linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px),
+                  linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px);
+  }
+
+  .card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.3s;
+  }
+
+  .card-hover:hover {
+    border-color: var(--neon);
+    box-shadow: var(--glow);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--neon), var(--plasma));
+    color: #fff;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .btn-primary:hover {
+    box-shadow: var(--glow);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--text-secondary);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--neon);
+    color: var(--text-primary);
+  }
+
+  .btn-danger {
+    background: rgba(255, 69, 0, 0.15);
+    color: #ff6b35;
+    border: 1px solid rgba(255, 69, 0, 0.3);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .btn-danger:hover {
+    background: rgba(255, 69, 0, 0.25);
+    box-shadow: 0 0 15px rgba(255, 69, 0, 0.2);
+  }
+
+  .input-field {
+    width: 100%;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 0.625rem 1rem;
+    font-family: 'Exo 2', sans-serif;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    outline: none;
+  }
+
+  .input-field:focus {
+    border-color: var(--neon);
+    box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.1);
+  }
+
+  .input-field::placeholder {
+    color: var(--text-muted);
+  }
+
+  .light .input-field:focus {
+    box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
+  }
+
+  .badge {
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    border: 1px solid;
+    text-transform: uppercase;
+  }
+
+  .neon-text {
+    color: var(--neon);
+    text-shadow: 0 0 10px var(--neon);
+  }
+
+  .neon-border {
+    border-color: var(--neon);
+    box-shadow: var(--glow);
+  }
+
+  .scanline {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .scanline::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    );
+    pointer-events: none;
+  }
+
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--neon), var(--plasma));
+  }
+
+  .admin-badge {
+    background: linear-gradient(135deg, rgba(255,69,0,0.2), rgba(255,107,53,0.2));
+    border: 1px solid rgba(255,69,0,0.4);
+    color: #ff6b35;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+}
