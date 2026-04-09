@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import API_URL from "../api.js"; // ← your API URL
 
+// Category colors and icons
 const categoryColors = {
   Mod: { color: "#bf5fff", bg: "rgba(191,95,255,0.1)", border: "rgba(191,95,255,0.3)" },
   "Save File": { color: "#00c853", bg: "rgba(0,200,83,0.1)", border: "rgba(0,200,83,0.3)" },
@@ -16,6 +17,7 @@ const categoryIcons = {
   Mod: "⚙️", "Save File": "💾", Patch: "🔧", Tool: "🛠️", Map: "🗺️", Other: "📁",
 };
 
+// Detect download host
 function detectHost(url) {
   if (!url) return { icon: "🌐", label: "Download" };
   if (url.includes("drive.google.com")) return { icon: "🟢", label: "Google Drive" };
@@ -28,6 +30,7 @@ function detectHost(url) {
   return { icon: "🌐", label: "Download" };
 }
 
+// Star rating component
 function StarRating({ fileId, avgRating, ratingCount }) {
   const { user, token } = useAuth();
   const [hovered, setHovered] = useState(0);
@@ -46,7 +49,9 @@ function StarRating({ fileId, avgRating, ratingCount }) {
       );
       setCurrentAvg(res.data.avg_rating);
       setCurrentCount(res.data.rating_count);
-    } catch { alert("Failed to submit rating."); }
+    } catch {
+      alert("Failed to submit rating.");
+    }
   };
 
   const displayRating = hovered || userRating || currentAvg;
@@ -56,10 +61,14 @@ function StarRating({ fileId, avgRating, ratingCount }) {
       <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
           <button key={star}
-            onMouseEnter={() => setHovered(star)} onMouseLeave={() => setHovered(0)}
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(0)}
             onClick={() => handleRate(star)}
             className="text-xl transition-transform hover:scale-125"
-            style={{ color: star <= displayRating ? "#fbbf24" : "var(--text-muted)", textShadow: star <= displayRating ? "0 0 8px #fbbf24" : "none" }}
+            style={{
+              color: star <= displayRating ? "#fbbf24" : "var(--text-muted)",
+              textShadow: star <= displayRating ? "0 0 8px #fbbf24" : "none"
+            }}
           >★</button>
         ))}
       </div>
@@ -70,6 +79,7 @@ function StarRating({ fileId, avgRating, ratingCount }) {
   );
 }
 
+// Comment section
 function CommentSection({ fileId }) {
   const { user, token } = useAuth();
   const [comments, setComments] = useState([]);
@@ -77,11 +87,11 @@ function CommentSection({ fileId }) {
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     axios.get(`${API_URL}/api/files/${fileId}/comments`)
-      .then((res) => { setComments(res.data); setLoaded(true); })
+      .then(res => { setComments(res.data); setLoaded(true); })
       .catch(() => setLoaded(true));
-  }, []);
+  }, [fileId]);
 
   const handleSubmit = async () => {
     if (!newComment.trim() || !user) return;
@@ -92,7 +102,7 @@ function CommentSection({ fileId }) {
         { content: newComment },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setComments((prev) => [res.data, ...prev]);
+      setComments(prev => [res.data, ...prev]);
       setNewComment("");
     } catch { alert("Failed to post comment."); }
     finally { setSubmitting(false); }
@@ -102,7 +112,7 @@ function CommentSection({ fileId }) {
     try {
       await axios.delete(`${API_URL}/api/files/${fileId}/comments/${commentId}`,
         { headers: { Authorization: `Bearer ${token}` } });
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      setComments(prev => prev.filter(c => c.id !== commentId));
     } catch { alert("Failed to delete."); }
   };
 
@@ -129,7 +139,7 @@ function CommentSection({ fileId }) {
         <p className="text-xs text-center py-2" style={{ color: "var(--text-muted)" }}>No comments yet</p>
       ) : (
         <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
-          {comments.map((c) => (
+          {comments.map(c => (
             <div key={c.id} className="flex items-start gap-2 p-2.5 rounded-lg"
               style={{ background: "var(--bg-secondary)", border: "1px solid var(--border)" }}>
               <div className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold text-white shrink-0"
@@ -162,21 +172,21 @@ function CommentSection({ fileId }) {
   );
 }
 
-export default function FileCard({ file, onDownload }) {
+// Main FileCard
+export default function FileCard({ file }) {
   const catStyle = categoryColors[file.category] || categoryColors["Other"];
   const icon = categoryIcons[file.category] || "📁";
   const [downloads, setDownloads] = useState(Number(file.downloads) || 0);
   const [showComments, setShowComments] = useState(false);
   const host = detectHost(file.download_url);
 
-  // ← FIXED: use the full Cloudinary URL directly
-  const coverUrl = file.cover_image || null;
+  // Fallback image logic: Cloudinary → local path → placeholder
+  const coverUrl = file.cover_image
+    || (file.localPath ? `${process.env.REACT_APP_BACKEND_URL}/${file.localPath}` : "/placeholder.jpg");
 
   const handleDownloadClick = async () => {
-    try {
-      await axios.post(`${API_URL}/api/files/${file.id}/click`);
-      setDownloads((d) => d + 1);
-    } catch { /* silent fail */ }
+    try { await axios.post(`${API_URL}/api/files/${file.id}/click`); setDownloads(d => d + 1); }
+    catch {} // silent fail
     window.open(file.download_url, "_blank", "noopener,noreferrer");
   };
 
@@ -196,8 +206,6 @@ export default function FileCard({ file, onDownload }) {
             <span className="text-xs" style={{ color: "var(--text-muted)", fontFamily: "Share Tech Mono" }}>NO COVER</span>
           </div>
         )}
-        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)" }} />
         <div className="absolute top-3 right-3">
           <span className="badge" style={{ color: catStyle.color, background: catStyle.bg, borderColor: catStyle.border }}>
             {file.category}
@@ -220,12 +228,8 @@ export default function FileCard({ file, onDownload }) {
             style={{ fontFamily: "Rajdhani", color: "var(--text-primary)", letterSpacing: "0.02em" }}
             onMouseEnter={(e) => e.target.style.color = "var(--neon)"}
             onMouseLeave={(e) => e.target.style.color = "var(--text-primary)"}
-          >
-            {file.title}
-          </h3>
-          <p className="text-sm mt-0.5 font-medium" style={{ color: "var(--neon)", opacity: 0.8 }}>
-            {file.game}
-          </p>
+          >{file.title}</h3>
+          <p className="text-sm mt-0.5 font-medium" style={{ color: "var(--neon)", opacity: 0.8 }}>{file.game}</p>
         </div>
 
         {file.description && (
@@ -256,14 +260,8 @@ export default function FileCard({ file, onDownload }) {
               letterSpacing: "0.05em",
               background: "linear-gradient(135deg, var(--neon), var(--plasma))",
               color: "#fff",
-              boxShadow: "0 0 0 rgba(0,245,255,0)",
-              transition: "all 0.2s",
             }}
-            onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 0 20px rgba(0,245,255,0.4)"}
-            onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 0 0 rgba(0,245,255,0)"}
-          >
-            {host.icon} {host.label.toUpperCase()} ↗
-          </button>
+          >{host.icon} {host.label.toUpperCase()} ↗</button>
 
           <button onClick={() => setShowComments(!showComments)}
             className="py-2.5 px-3 rounded-lg transition-all text-sm"
