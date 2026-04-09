@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../api";
 
 const CATEGORIES = ["Mod", "Save File", "Patch", "Tool", "Map", "Other"];
 const CATEGORY_ICONS = {
@@ -70,7 +71,7 @@ export default function Upload() {
     data.append("download_url", form.download_url);
 
     try {
-      await axios.post("http://localhost:5000/api/files/upload", data, {
+      await axios.post(`${API_URL}/api/files/upload`, data, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
       setSuccess(true);
@@ -128,7 +129,6 @@ export default function Upload() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Title & Game */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs mb-1.5"
@@ -148,7 +148,6 @@ export default function Upload() {
             </div>
           </div>
 
-          {/* Category */}
           <div>
             <label className="block text-xs mb-2"
               style={{ color: "var(--text-muted)", fontFamily: "Rajdhani", letterSpacing: "0.1em" }}>
@@ -172,7 +171,6 @@ export default function Upload() {
             </div>
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-xs mb-1.5"
               style={{ color: "var(--text-muted)", fontFamily: "Rajdhani", letterSpacing: "0.1em" }}>
@@ -183,14 +181,11 @@ export default function Upload() {
               value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
 
-          {/* Download Link — main feature */}
           <div>
             <label className="block text-xs mb-1.5"
               style={{ color: "var(--neon)", fontFamily: "Rajdhani", letterSpacing: "0.1em", textShadow: "0 0 8px var(--neon)" }}>
               DOWNLOAD LINK *
             </label>
-
-            {/* Supported services hint */}
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-3">
               {LINK_EXAMPLES.map((s) => (
                 <div key={s.label} className="text-center p-2 rounded-lg text-xs"
@@ -200,11 +195,8 @@ export default function Upload() {
                 </div>
               ))}
             </div>
-
             <div className="relative">
-              <input
-                type="url"
-                className="input-field pr-12"
+              <input type="url" className="input-field pr-12"
                 placeholder="https://drive.google.com/... or https://mega.nz/..."
                 value={form.download_url}
                 onChange={(e) => {
@@ -213,13 +205,10 @@ export default function Upload() {
                 }}
                 required
               />
-              {/* Validation indicator */}
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-lg">
                 {urlValid === true ? "✅" : urlValid === false ? "❌" : ""}
               </div>
             </div>
-
-            {/* Detected link type */}
             {detectedLink && (
               <div className="mt-2 flex items-center gap-2 text-sm"
                 style={{ color: "var(--neon)", fontFamily: "Share Tech Mono" }}>
@@ -227,13 +216,11 @@ export default function Upload() {
                 <span>{detectedLink.label} detected</span>
               </div>
             )}
-
             <p className="mt-2 text-xs" style={{ color: "var(--text-muted)" }}>
               💡 Make sure your link is set to <strong style={{ color: "var(--text-secondary)" }}>public / anyone with link</strong> before sharing
             </p>
           </div>
 
-          {/* Cover Image */}
           <div>
             <label className="block text-xs mb-1.5"
               style={{ color: "var(--text-muted)", fontFamily: "Rajdhani", letterSpacing: "0.1em" }}>

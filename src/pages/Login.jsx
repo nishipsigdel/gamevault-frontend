@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../api";
 
 export default function Login() {
   const { login } = useAuth();
@@ -15,7 +16,7 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", form);
+      const res = await axios.post(`${API_URL}/api/auth/login`, form);
       login(res.data.token, res.data.user);
       navigate("/");
     } catch (err) {

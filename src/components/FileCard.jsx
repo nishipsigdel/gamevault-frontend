@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../api";
 
 const categoryColors = {
   Mod: { color: "#bf5fff", bg: "rgba(191,95,255,0.1)", border: "rgba(191,95,255,0.3)" },
@@ -39,7 +40,7 @@ function StarRating({ fileId, avgRating, ratingCount }) {
     setUserRating(rating);
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/files/${fileId}/rate`,
+        `${API_URL}/api/files/${fileId}/rate`,
         { rating },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -77,7 +78,7 @@ function CommentSection({ fileId }) {
   const [submitting, setSubmitting] = useState(false);
 
   useState(() => {
-    axios.get(`http://localhost:5000/api/files/${fileId}/comments`)
+    axios.get(`${API_URL}/api/files/${fileId}/comments`)
       .then((res) => { setComments(res.data); setLoaded(true); })
       .catch(() => setLoaded(true));
   }, []);
@@ -87,7 +88,7 @@ function CommentSection({ fileId }) {
     setSubmitting(true);
     try {
       const res = await axios.post(
-        `http://localhost:5000/api/files/${fileId}/comments`,
+        `${API_URL}/api/files/${fileId}/comments`,
         { content: newComment },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -99,7 +100,7 @@ function CommentSection({ fileId }) {
 
   const handleDelete = async (commentId) => {
     try {
-      await axios.delete(`http://localhost:5000/api/files/${fileId}/comments/${commentId}`,
+      await axios.delete(`${API_URL}/api/files/${fileId}/comments/${commentId}`,
         { headers: { Authorization: `Bearer ${token}` } });
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch { alert("Failed to delete."); }
@@ -169,16 +170,14 @@ export default function FileCard({ file, onDownload }) {
   const host = detectHost(file.download_url);
 
   const coverUrl = file.cover_image
-    ? `http://localhost:5000/covers/${file.cover_image}`
+    ? `${API_URL}/covers/${file.cover_image}`
     : null;
 
   const handleDownloadClick = async () => {
-    // Track the click
     try {
-      await axios.post(`http://localhost:5000/api/files/${file.id}/click`);
+      await axios.post(`${API_URL}/api/files/${file.id}/click`);
       setDownloads((d) => d + 1);
     } catch { /* silent fail */ }
-    // Open the external link
     window.open(file.download_url, "_blank", "noopener,noreferrer");
   };
 
@@ -196,16 +195,13 @@ export default function FileCard({ file, onDownload }) {
             <span className="text-xs" style={{ color: "var(--text-muted)", fontFamily: "Share Tech Mono" }}>NO COVER</span>
           </div>
         )}
-        {/* Overlay gradient */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           style={{ background: "linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)" }} />
-        {/* Category badge */}
         <div className="absolute top-3 right-3">
           <span className="badge" style={{ color: catStyle.color, background: catStyle.bg, borderColor: catStyle.border }}>
             {file.category}
           </span>
         </div>
-        {/* Host badge */}
         {file.download_url && (
           <div className="absolute bottom-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="text-xs px-2 py-1 rounded"
@@ -218,7 +214,6 @@ export default function FileCard({ file, onDownload }) {
 
       {/* Content */}
       <div className="flex flex-col gap-3 p-5">
-        {/* Title & Game */}
         <div>
           <h3 className="font-bold text-base leading-tight transition-colors"
             style={{ fontFamily: "Rajdhani", color: "var(--text-primary)", letterSpacing: "0.02em" }}
@@ -232,17 +227,14 @@ export default function FileCard({ file, onDownload }) {
           </p>
         </div>
 
-        {/* Description */}
         {file.description && (
           <p className="text-sm line-clamp-2 leading-relaxed" style={{ color: "var(--text-muted)" }}>
             {file.description}
           </p>
         )}
 
-        {/* Star Rating */}
         <StarRating fileId={file.id} avgRating={file.avg_rating} ratingCount={file.rating_count} />
 
-        {/* Meta */}
         <div className="flex items-center gap-3 text-xs flex-wrap" style={{ color: "var(--text-muted)", fontFamily: "Share Tech Mono" }}>
           <span>⬇️ {downloads}</span>
           <span>💬 {file.comment_count || 0}</span>
@@ -255,9 +247,7 @@ export default function FileCard({ file, onDownload }) {
           </span>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-2 mt-1">
-          {/* Main download/redirect button */}
           <button onClick={handleDownloadClick}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg font-bold text-sm transition-all"
             style={{
@@ -274,7 +264,6 @@ export default function FileCard({ file, onDownload }) {
             {host.icon} {host.label.toUpperCase()} ↗
           </button>
 
-          {/* Comments toggle */}
           <button onClick={() => setShowComments(!showComments)}
             className="py-2.5 px-3 rounded-lg transition-all text-sm"
             style={{
@@ -286,7 +275,6 @@ export default function FileCard({ file, onDownload }) {
           >💬</button>
         </div>
 
-        {/* Comments */}
         {showComments && <CommentSection fileId={file.id} />}
       </div>
     </div>

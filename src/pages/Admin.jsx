@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../api";
 
 function StatCard({ label, value, icon, color }) {
   return (
@@ -37,9 +38,9 @@ export default function Admin() {
     setLoading(true);
     try {
       const [s, f, u] = await Promise.all([
-        axios.get("http://localhost:5000/api/admin/stats", { headers }),
-        axios.get("http://localhost:5000/api/admin/files", { headers }),
-        axios.get("http://localhost:5000/api/admin/users", { headers }),
+        axios.get(`${API_URL}/api/admin/stats`, { headers }),
+        axios.get(`${API_URL}/api/admin/files`, { headers }),
+        axios.get(`${API_URL}/api/admin/users`, { headers }),
       ]);
       setStats(s.data);
       setFiles(f.data);
@@ -54,7 +55,7 @@ export default function Admin() {
   const deleteFile = async (id) => {
     if (!confirm("Delete this file permanently?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/files/${id}`, { headers });
+      await axios.delete(`${API_URL}/api/admin/files/${id}`, { headers });
       setFiles((prev) => prev.filter((f) => f.id !== id));
       setStats((s) => ({ ...s, files: s.files - 1 }));
     } catch {
@@ -65,7 +66,7 @@ export default function Admin() {
   const deleteUser = async (id) => {
     if (!confirm("Delete this user and all their files?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/users/${id}`, { headers });
+      await axios.delete(`${API_URL}/api/admin/users/${id}`, { headers });
       setUsers((prev) => prev.filter((u) => u.id !== id));
       fetchAll();
     } catch {
@@ -76,7 +77,7 @@ export default function Admin() {
   const toggleAdmin = async (id) => {
     try {
       const res = await axios.patch(
-        `http://localhost:5000/api/admin/users/${id}/toggle-admin`,
+        `${API_URL}/api/admin/users/${id}/toggle-admin`,
         {}, { headers }
       );
       setUsers((prev) =>
@@ -100,7 +101,6 @@ export default function Admin() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-display font-bold" style={{ color: "var(--neon)", fontFamily: "Rajdhani", textShadow: "0 0 20px var(--neon)" }}>
@@ -113,7 +113,6 @@ export default function Admin() {
         <button onClick={fetchAll} className="btn-secondary text-sm">🔄 Refresh</button>
       </div>
 
-      {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Total Users" value={stats.users} icon="👥" color="var(--neon)" />
@@ -123,7 +122,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Search */}
       <input
         type="text"
         className="input-field"
@@ -132,7 +130,6 @@ export default function Admin() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {/* Tabs */}
       <div className="flex gap-2">
         {["files", "users"].map((t) => (
           <button
@@ -155,7 +152,6 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Files Table */}
       {tab === "files" && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
@@ -210,7 +206,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Users Table */}
       {tab === "users" && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
