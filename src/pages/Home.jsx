@@ -80,7 +80,6 @@ export default function Home() {
             Mods, save files, patches, tools — everything the gaming community needs.
           </p>
 
-          {/* Stats */}
           <div className="flex items-center justify-center gap-8 mb-8">
             {[
               { label: "FILES", value: stats.files, color: "var(--neon)" },
@@ -111,10 +110,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Activity Feed */}
       <ActivityFeed />
 
-      {/* Search */}
       <form onSubmit={(e) => { e.preventDefault(); fetchFiles(); }} className="flex gap-2">
         <div className="relative flex-1">
           <span className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>🔍</span>
@@ -125,7 +122,6 @@ export default function Home() {
         <button type="submit" className="btn-primary px-6 py-3">SEARCH</button>
       </form>
 
-      {/* Category Filter */}
       <div className="flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.map((cat) => (
           <button key={cat} onClick={() => setCategory(cat)}
@@ -145,7 +141,6 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Results header */}
       {!loading && !error && (
         <div className="flex items-center justify-between">
           <h2 style={{ fontFamily: "Rajdhani", fontSize: "1.25rem", color: "var(--text-primary)" }}>
@@ -158,7 +153,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[...Array(6)].map((_, i) => (

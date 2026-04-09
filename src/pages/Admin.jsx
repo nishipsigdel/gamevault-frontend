@@ -101,7 +101,6 @@ export default function Admin() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-display font-bold" style={{ color: "var(--neon)", fontFamily: "Rajdhani", textShadow: "0 0 20px var(--neon)" }}>
@@ -114,7 +113,6 @@ export default function Admin() {
         <button onClick={fetchAll} className="btn-secondary text-sm">🔄 Refresh</button>
       </div>
 
-      {/* Stats */}
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard label="Total Users" value={stats.users} icon="👥" color="var(--neon)" />
@@ -124,7 +122,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Search */}
       <input
         type="text"
         className="input-field"
@@ -133,7 +130,6 @@ export default function Admin() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {/* Tabs */}
       <div className="flex gap-2">
         {["files", "users"].map((t) => (
           <button
@@ -156,7 +152,6 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Files Table */}
       {tab === "files" && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
@@ -211,7 +206,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Users Table */}
       {tab === "users" && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
