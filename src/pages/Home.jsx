@@ -4,6 +4,7 @@ import axios from "axios";
 import FileCard from "../components/FileCard";
 import ActivityFeed from "../components/ActivityFeed";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../api.js";  // ← ADDED THIS LINE
 
 const CATEGORIES = ["All", "Mod", "Save File", "Patch", "Tool", "Map", "Other"];
 const CATEGORY_ICONS = { All: "🎮", Mod: "⚙️", "Save File": "💾", Patch: "🔧", Tool: "🛠️", Map: "🗺️", Other: "📁" };
@@ -23,7 +24,7 @@ export default function Home() {
       const params = {};
       if (search) params.search = search;
       if (category !== "All") params.category = category;
-      const res = await axios.get("http://localhost:5000/api/files", { params });
+      const res = await axios.get(`${API_URL}/api/files`, { params });  // ← FIXED THIS LINE
       setFiles(res.data);
       setStats({ files: res.data.length, downloads: res.data.reduce((a, f) => a + f.downloads, 0) });
     } catch {
@@ -37,7 +38,7 @@ export default function Home() {
 
   const handleDownload = async (fileId, fileName) => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/files/${fileId}/download`, { responseType: "blob" });
+      const res = await axios.get(`${API_URL}/api/files/${fileId}/download`, { responseType: "blob" });  // ← FIXED THIS LINE
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a");
       a.href = url; a.download = fileName; a.click();

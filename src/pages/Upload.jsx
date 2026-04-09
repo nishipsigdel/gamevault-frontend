@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../api.js";  // ← ADDED THIS LINE
 
 const CATEGORIES = ["Mod", "Save File", "Patch", "Tool", "Map", "Other"];
 const CATEGORY_ICONS = {
@@ -70,7 +71,7 @@ export default function Upload() {
     data.append("download_url", form.download_url);
 
     try {
-      await axios.post("http://localhost:5000/api/files/upload", data, {
+      await axios.post(`${API_URL}/api/files/upload`, data, {  // ← FIXED THIS LINE
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
       setSuccess(true);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
+import API_URL from "../api.js";  // ← ADDED THIS LINE
 
 function StatCard({ label, value, icon, color }) {
   return (
@@ -37,9 +38,9 @@ export default function Admin() {
     setLoading(true);
     try {
       const [s, f, u] = await Promise.all([
-        axios.get("http://localhost:5000/api/admin/stats", { headers }),
-        axios.get("http://localhost:5000/api/admin/files", { headers }),
-        axios.get("http://localhost:5000/api/admin/users", { headers }),
+        axios.get(`${API_URL}/api/admin/stats`, { headers }),      // ← FIXED
+        axios.get(`${API_URL}/api/admin/files`, { headers }),     // ← FIXED
+        axios.get(`${API_URL}/api/admin/users`, { headers }),     // ← FIXED
       ]);
       setStats(s.data);
       setFiles(f.data);
@@ -54,7 +55,7 @@ export default function Admin() {
   const deleteFile = async (id) => {
     if (!confirm("Delete this file permanently?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/files/${id}`, { headers });
+      await axios.delete(`${API_URL}/api/admin/files/${id}`, { headers });  // ← FIXED
       setFiles((prev) => prev.filter((f) => f.id !== id));
       setStats((s) => ({ ...s, files: s.files - 1 }));
     } catch {
@@ -65,7 +66,7 @@ export default function Admin() {
   const deleteUser = async (id) => {
     if (!confirm("Delete this user and all their files?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/users/${id}`, { headers });
+      await axios.delete(`${API_URL}/api/admin/users/${id}`, { headers });  // ← FIXED
       setUsers((prev) => prev.filter((u) => u.id !== id));
       fetchAll();
     } catch {
@@ -76,7 +77,7 @@ export default function Admin() {
   const toggleAdmin = async (id) => {
     try {
       const res = await axios.patch(
-        `http://localhost:5000/api/admin/users/${id}/toggle-admin`,
+        `${API_URL}/api/admin/users/${id}/toggle-admin`,  // ← FIXED
         {}, { headers }
       );
       setUsers((prev) =>

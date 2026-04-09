@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
+import API_URL from "../api.js";  // ← ADDED THIS LINE
 
-const socket = io("http://localhost:5000");
+const socket = io(API_URL);  // ← FIXED THIS LINE
 
 export default function ActivityFeed() {
   const [activities, setActivities] = useState([]);
