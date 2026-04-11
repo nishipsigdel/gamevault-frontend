@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import GameCursor from "./components/GameCursor";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -28,18 +29,23 @@ function AdminRoute({ children }) {
 
 export default function App() {
   return (
-    <div className="game-bg min-h-screen flex flex-col">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
-          <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
+    <>
+      {/* Custom cursor + background particles */}
+      <GameCursor />
+
+      <div className="game-bg min-h-screen flex flex-col" style={{ position: "relative", zIndex: 1 }}>
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+          <Routes>
+            <Route path="/"        element={<Home />} />
+            <Route path="/login"   element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/upload"  element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+            <Route path="/admin"   element={<AdminRoute><Admin /></AdminRoute>} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 }

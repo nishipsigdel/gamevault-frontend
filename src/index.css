@@ -16,14 +16,11 @@
     --text-primary: #e8f0ff;
     --text-secondary: #8899bb;
     --text-muted: #445577;
-    --glow: 0 0 20px rgba(0, 245, 255, 0.3);
-    --glow-plasma: 0 0 20px rgba(160, 48, 240, 0.3);
   }
 
   .light {
     --neon: #7c3aed;
     --plasma: #a030f0;
-    --fire: #ff4500;
     --bg-primary: #f0f2f8;
     --bg-secondary: #e4e8f5;
     --bg-card: #ffffff;
@@ -31,8 +28,11 @@
     --text-primary: #0f172a;
     --text-secondary: #475569;
     --text-muted: #94a3b8;
-    --glow: 0 0 20px rgba(124, 58, 237, 0.2);
-    --glow-plasma: 0 0 20px rgba(160, 48, 240, 0.15);
+  }
+
+  /* Hide default cursor on desktop only */
+  @media (hover: hover) and (pointer: fine) {
+    *, *::before, *::after { cursor: none !important; }
   }
 
   body {
@@ -44,10 +44,7 @@
     overflow-x: hidden;
   }
 
-  h1, h2, h3, h4 {
-    font-family: 'Rajdhani', sans-serif;
-    letter-spacing: 0.02em;
-  }
+  h1, h2, h3, h4 { font-family: 'Rajdhani', sans-serif; letter-spacing: 0.02em; }
 
   * {
     scrollbar-width: thin;
@@ -55,410 +52,410 @@
   }
 }
 
-/* ============ KEYFRAME ANIMATIONS ============ */
+/* ===========================
+   CUSTOM CURSOR
+=========================== */
+
+#game-cursor {
+  position: fixed;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 99999;
+  display: none; /* shown by JS only on desktop */
+}
+
+#game-cursor .cursor-outer {
+  width: 36px; height: 36px;
+  border: 1.5px solid var(--neon);
+  border-radius: 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s ease, height 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  animation: cursorRotate 3s linear infinite, cursorGlow 1.5s ease-in-out infinite;
+}
+
+#game-cursor .cursor-inner {
+  width: 6px; height: 6px;
+  background: var(--neon);
+  border-radius: 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px var(--neon), 0 0 16px var(--neon);
+  animation: innerPulse 1.5s ease-in-out infinite;
+}
+
+#game-cursor .cursor-crosshair-h,
+#game-cursor .cursor-crosshair-v {
+  position: absolute;
+  background: var(--neon);
+  opacity: 0.5;
+  transform: translate(-50%, -50%);
+}
+
+#game-cursor .cursor-crosshair-h {
+  width: 20px; height: 1px;
+  top: 0; left: 0;
+}
+
+#game-cursor .cursor-crosshair-v {
+  width: 1px; height: 20px;
+  top: 0; left: 0;
+}
+
+/* Cursor hover state (applied via JS) */
+#game-cursor.hovering .cursor-outer {
+  width: 52px; height: 52px;
+  border-color: var(--plasma);
+  opacity: 0.7;
+}
+
+#game-cursor.hovering .cursor-inner {
+  background: var(--plasma);
+  box-shadow: 0 0 12px var(--plasma), 0 0 24px var(--plasma);
+}
+
+/* Cursor click state */
+#game-cursor.clicking .cursor-inner {
+  width: 12px; height: 12px;
+  background: #fff;
+  box-shadow: 0 0 20px #fff;
+}
+
+/* Cursor trail particle */
+.cursor-trail {
+  position: fixed;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  background: var(--neon);
+  transform: translate(-50%, -50%);
+  animation: trailFade 0.6s ease forwards;
+}
+
+@keyframes trailFade {
+  from { opacity: 0.8; transform: translate(-50%,-50%) scale(1); }
+  to   { opacity: 0;   transform: translate(-50%,-50%) scale(0); }
+}
+
+@keyframes cursorRotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes cursorGlow {
+  0%, 100% { box-shadow: 0 0 4px var(--neon); }
+  50%       { box-shadow: 0 0 12px var(--neon), 0 0 24px rgba(0,245,255,0.3); }
+}
+
+@keyframes innerPulse {
+  0%, 100% { transform: translate(-50%,-50%) scale(1); }
+  50%       { transform: translate(-50%,-50%) scale(1.5); }
+}
+
+/* ===========================
+   BACKGROUND PARTICLES
+=========================== */
+
+#bg-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* ===========================
+   KEYFRAMES
+=========================== */
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes fadeInDown {
-  from { opacity: 0; transform: translateY(-20px); }
-  to { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 5px rgba(0, 245, 255, 0.3), 0 0 10px rgba(0, 245, 255, 0.1); }
-  50% { box-shadow: 0 0 20px rgba(0, 245, 255, 0.6), 0 0 40px rgba(0, 245, 255, 0.2); }
-}
-
-@keyframes neonFlicker {
-  0%, 100% { opacity: 1; text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon); }
-  92% { opacity: 1; text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon); }
-  93% { opacity: 0.8; text-shadow: none; }
-  94% { opacity: 1; text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon); }
-  96% { opacity: 0.9; text-shadow: none; }
-  97% { opacity: 1; text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon); }
-}
-
-@keyframes shine {
-  from { left: -100%; }
-  to { left: 200%; }
-}
-
-@keyframes borderGlow {
-  0%, 100% { border-color: rgba(0, 245, 255, 0.15); }
-  50% { border-color: rgba(0, 245, 255, 0.5); }
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  50%       { transform: translateY(-10px); }
 }
 
-@keyframes scanline {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
+/* LOGO FLICKER — like a real broken neon sign */
+@keyframes logoFlicker {
+  0%,  19%,  21%,  23%,  25%,  54%,  56%,  100% {
+    text-shadow:
+      0 0 5px  var(--neon),
+      0 0 10px var(--neon),
+      0 0 20px var(--neon),
+      0 0 40px var(--neon);
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    text-shadow: none;
+    opacity: 0.5;
+  }
+}
+
+/* TITLE FLICKER — slightly different timing */
+@keyframes titleFlicker {
+  0%,89%,91%,93%,100% {
+    opacity: 1;
+    text-shadow: 0 0 10px var(--neon), 0 0 30px var(--neon), 0 0 60px rgba(0,245,255,0.3);
+  }
+  90%,92% { opacity: 0.3; text-shadow: none; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,245,255,0.3); }
+  50%       { box-shadow: 0 0 25px rgba(0,245,255,0.7), 0 0 50px rgba(0,245,255,0.2); }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(0,245,255,0.15); }
+  50%       { border-color: rgba(0,245,255,0.45); }
+}
+
+@keyframes shine {
+  from { left: -100%; }
+  to   { left: 200%; }
 }
 
 @keyframes gridMove {
-  0% { background-position: 0 0; }
-  100% { background-position: 40px 40px; }
+  from { background-position: 0 0; }
+  to   { background-position: 40px 40px; }
 }
 
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes scanMove {
+  from { top: -10%; }
+  to   { top: 110%; }
 }
 
-@keyframes cardEntrance {
+@keyframes cardIn {
   from { opacity: 0; transform: translateY(40px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
-@keyframes progressFill {
-  from { width: 0%; }
+@keyframes pulseDot {
+  0%, 100% { box-shadow: 0 0 4px #00ff88; opacity: 1; }
+  50%       { box-shadow: 0 0 14px #00ff88, 0 0 28px #00ff88; opacity: 0.8; }
 }
 
-@keyframes rotateSlow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes orbFloat1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(30px,-20px) scale(1.05); }
+  66%      { transform: translate(-20px,15px) scale(0.95); }
 }
 
-@keyframes typing {
-  from { width: 0; }
-  to { width: 100%; }
+@keyframes orbFloat2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(-25px,20px) scale(0.95); }
+  66%      { transform: translate(20px,-15px) scale(1.05); }
 }
 
-@keyframes blink {
-  0%, 100% { border-color: var(--neon); }
-  50% { border-color: transparent; }
-}
+/* ===========================
+   UTILITY CLASSES
+=========================== */
 
-/* ============ UTILITY ANIMATION CLASSES ============ */
+.anim-fade-up  { animation: fadeInUp 0.6s ease both; }
+.anim-fade     { animation: fadeIn   0.5s ease both; }
+.anim-scale-in { animation: scaleIn  0.4s ease both; }
+.anim-float    { animation: float    3s ease-in-out infinite; }
+.anim-flicker  { animation: titleFlicker 5s ease-in-out infinite; }
+.anim-glow     { animation: glowPulse    2s ease-in-out infinite; }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease forwards;
-}
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+.delay-6 { animation-delay: 0.6s; }
+.delay-7 { animation-delay: 0.7s; }
+.delay-8 { animation-delay: 0.8s; }
 
-.animate-fade-in {
-  animation: fadeIn 0.5s ease forwards;
-}
+/* Staggered card grid */
+.card-grid { display: grid; }
+.card-grid > *:nth-child(1)  { animation: cardIn 0.5s ease both 0.05s; }
+.card-grid > *:nth-child(2)  { animation: cardIn 0.5s ease both 0.10s; }
+.card-grid > *:nth-child(3)  { animation: cardIn 0.5s ease both 0.15s; }
+.card-grid > *:nth-child(4)  { animation: cardIn 0.5s ease both 0.20s; }
+.card-grid > *:nth-child(5)  { animation: cardIn 0.5s ease both 0.25s; }
+.card-grid > *:nth-child(6)  { animation: cardIn 0.5s ease both 0.30s; }
+.card-grid > *:nth-child(7)  { animation: cardIn 0.5s ease both 0.35s; }
+.card-grid > *:nth-child(8)  { animation: cardIn 0.5s ease both 0.40s; }
+.card-grid > *:nth-child(9)  { animation: cardIn 0.5s ease both 0.45s; }
+.card-grid > *:nth-child(10) { animation: cardIn 0.5s ease both 0.50s; }
+.card-grid > *:nth-child(11) { animation: cardIn 0.5s ease both 0.55s; }
+.card-grid > *:nth-child(12) { animation: cardIn 0.5s ease both 0.60s; }
 
-.animate-slide-left {
-  animation: slideInLeft 0.6s ease forwards;
-}
-
-.animate-slide-right {
-  animation: slideInRight 0.6s ease forwards;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.4s ease forwards;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-neon-flicker {
-  animation: neonFlicker 4s ease-in-out infinite;
-}
-
-.animate-glow-pulse {
-  animation: glowPulse 2s ease-in-out infinite;
-}
-
-/* Staggered children animations */
-.stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
-.stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
-.stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
-.stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
-.stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
-.stagger-children > *:nth-child(6) { animation-delay: 0.6s; }
-.stagger-children > * {
-  opacity: 0;
-  animation: fadeInUp 0.6s ease forwards;
-}
-
-/* Card stagger for grid */
-.card-grid > *:nth-child(1) { animation-delay: 0.05s; }
-.card-grid > *:nth-child(2) { animation-delay: 0.1s; }
-.card-grid > *:nth-child(3) { animation-delay: 0.15s; }
-.card-grid > *:nth-child(4) { animation-delay: 0.2s; }
-.card-grid > *:nth-child(5) { animation-delay: 0.25s; }
-.card-grid > *:nth-child(6) { animation-delay: 0.3s; }
-.card-grid > *:nth-child(7) { animation-delay: 0.35s; }
-.card-grid > *:nth-child(8) { animation-delay: 0.4s; }
-.card-grid > *:nth-child(9) { animation-delay: 0.45s; }
-.card-grid > * {
-  opacity: 0;
-  animation: cardEntrance 0.5s ease forwards;
-}
-
-/* ============ COMPONENT STYLES ============ */
+/* ===========================
+   COMPONENTS
+=========================== */
 
 @layer components {
+
   .game-bg {
     background-color: var(--bg-primary);
-    background-image: linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
+    background-image:
+      linear-gradient(rgba(0,245,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.03) 1px, transparent 1px);
     background-size: 40px 40px;
     animation: gridMove 20s linear infinite;
+    position: relative;
+    z-index: 1;
   }
 
   .light .game-bg {
-    background-image: linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px),
-                      linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px);
+    background-image:
+      linear-gradient(rgba(124,58,237,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,58,237,0.04) 1px, transparent 1px);
+  }
+
+  /* Navbar logo flicker */
+  .logo-flicker {
+    animation: logoFlicker 6s linear infinite;
+    color: var(--neon);
   }
 
   .card {
     background-color: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
   .card-hover:hover {
     border-color: var(--neon);
-    box-shadow: var(--glow), 0 20px 40px rgba(0, 0, 0, 0.3);
-    transform: translateY(-4px);
+    box-shadow: 0 0 20px rgba(0,245,255,0.2), 0 20px 40px rgba(0,0,0,0.3);
+    transform: translateY(-5px);
   }
 
-  .card-hover:hover .card-cover img {
-    transform: scale(1.08);
-  }
-
-  /* Shine effect on button hover */
   .btn-primary {
+    position: relative; overflow: hidden;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
     background: linear-gradient(135deg, var(--neon), var(--plasma));
     color: #fff;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 0.95rem;
-    letter-spacing: 0.05em;
-    padding: 0.5rem 1.25rem;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
+    font-family: 'Rajdhani', sans-serif; font-weight: 600;
+    font-size: 0.95rem; letter-spacing: 0.05em;
+    padding: 0.5rem 1.25rem; border-radius: 8px; border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .btn-primary::after {
     content: '';
-    position: absolute;
-    top: -50%;
-    left: -100%;
-    width: 60%;
-    height: 200%;
-    background: rgba(255, 255, 255, 0.15);
+    position: absolute; top: -50%; left: -100%;
+    width: 50%; height: 200%;
+    background: rgba(255,255,255,0.18);
     transform: skewX(-20deg);
-    transition: none;
   }
 
-  .btn-primary:hover::after {
-    animation: shine 0.5s ease forwards;
-  }
-
-  .btn-primary:hover {
-    box-shadow: var(--glow), 0 8px 25px rgba(0, 245, 255, 0.25);
-    transform: translateY(-2px);
-  }
-
-  .btn-primary:active {
-    transform: translateY(0);
-  }
-
-  .btn-primary:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
+  .btn-primary:hover::after  { animation: shine 0.45s ease forwards; }
+  .btn-primary:hover         { transform: translateY(-2px); box-shadow: 0 0 20px rgba(0,245,255,0.4); }
+  .btn-primary:active        { transform: translateY(0); }
+  .btn-primary:disabled      { opacity: 0.5; transform: none; }
 
   .btn-secondary {
-    background-color: transparent;
-    color: var(--text-secondary);
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 0.95rem;
-    letter-spacing: 0.05em;
-    padding: 0.5rem 1.25rem;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+    background: transparent; color: var(--text-secondary);
+    font-family: 'Rajdhani', sans-serif; font-weight: 600;
+    font-size: 0.95rem; letter-spacing: 0.05em;
+    padding: 0.5rem 1.25rem; border-radius: 8px; border: 1px solid var(--border);
+    transition: all 0.2s ease;
   }
 
   .btn-secondary:hover {
-    border-color: var(--neon);
-    color: var(--text-primary);
-    box-shadow: 0 0 10px rgba(0, 245, 255, 0.1);
-    transform: translateY(-1px);
+    border-color: var(--neon); color: var(--text-primary);
+    box-shadow: 0 0 12px rgba(0,245,255,0.1); transform: translateY(-1px);
   }
 
   .btn-danger {
-    background: rgba(255, 69, 0, 0.15);
-    color: #ff6b35;
-    border: 1px solid rgba(255, 69, 0, 0.3);
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    padding: 0.5rem 1.25rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: rgba(255,69,0,0.15); color: #ff6b35;
+    border: 1px solid rgba(255,69,0,0.3);
+    font-family: 'Rajdhani', sans-serif; font-weight: 600;
+    padding: 0.5rem 1.25rem; border-radius: 8px;
+    transition: all 0.2s ease;
   }
 
   .btn-danger:hover {
-    background: rgba(255, 69, 0, 0.25);
-    box-shadow: 0 0 15px rgba(255, 69, 0, 0.2);
-    transform: translateY(-1px);
+    background: rgba(255,69,0,0.28);
+    box-shadow: 0 0 15px rgba(255,69,0,0.25); transform: translateY(-1px);
   }
 
   .input-field {
-    width: 100%;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border);
-    color: var(--text-primary);
-    border-radius: 8px;
-    padding: 0.625rem 1rem;
-    font-family: 'Exo 2', sans-serif;
-    font-size: 0.95rem;
-    transition: all 0.3s;
-    outline: none;
+    width: 100%; background-color: var(--bg-secondary);
+    border: 1px solid var(--border); color: var(--text-primary);
+    border-radius: 8px; padding: 0.625rem 1rem;
+    font-family: 'Exo 2', sans-serif; font-size: 0.95rem;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.2s; outline: none;
   }
 
   .input-field:focus {
     border-color: var(--neon);
-    box-shadow: 0 0 0 2px rgba(0, 245, 255, 0.1), 0 0 15px rgba(0, 245, 255, 0.1);
+    box-shadow: 0 0 0 2px rgba(0,245,255,0.1), 0 0 15px rgba(0,245,255,0.1);
     transform: translateY(-1px);
   }
 
-  .input-field::placeholder {
-    color: var(--text-muted);
-  }
+  .input-field::placeholder { color: var(--text-muted); }
 
   .badge {
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 600;
-    font-size: 0.75rem;
-    letter-spacing: 0.05em;
-    padding: 0.2rem 0.6rem;
-    border-radius: 4px;
-    border: 1px solid;
+    font-family: 'Rajdhani', sans-serif; font-weight: 600;
+    font-size: 0.75rem; letter-spacing: 0.05em;
+    padding: 0.2rem 0.6rem; border-radius: 4px; border: 1px solid;
     text-transform: uppercase;
   }
 
-  .neon-text {
-    color: var(--neon);
-    animation: neonFlicker 4s ease-in-out infinite;
-  }
-
   .stat-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 1.25rem;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem; position: relative; overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     animation: borderGlow 3s ease-in-out infinite;
   }
 
   .stat-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: linear-gradient(90deg, var(--neon), var(--plasma));
   }
 
-  .stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--glow);
-  }
+  .stat-card:hover { transform: translateY(-4px); box-shadow: 0 0 20px rgba(0,245,255,0.2); }
 
   .admin-badge {
     background: linear-gradient(135deg, rgba(255,69,0,0.2), rgba(255,107,53,0.2));
-    border: 1px solid rgba(255,69,0,0.4);
-    color: #ff6b35;
-    font-family: 'Rajdhani', sans-serif;
-    font-weight: 700;
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    text-transform: uppercase;
+    border: 1px solid rgba(255,69,0,0.4); color: #ff6b35;
+    font-family: 'Rajdhani', sans-serif; font-weight: 700;
+    font-size: 0.7rem; letter-spacing: 0.1em;
+    padding: 0.15rem 0.5rem; border-radius: 4px; text-transform: uppercase;
   }
 
-  /* Page transition wrapper */
-  .page-enter {
-    animation: fadeInUp 0.5s ease forwards;
-  }
-
-  /* Glowing border animation on cards */
-  .glow-border {
-    animation: borderGlow 3s ease-in-out infinite;
-  }
-
-  /* Scanline overlay */
-  .scanline {
-    position: relative;
-    overflow: hidden;
-  }
-
+  /* Scanline sweep on hero */
+  .scanline { position: relative; overflow: hidden; }
   .scanline::before {
-    content: '';
-    position: absolute;
-    top: -100%;
-    left: 0;
-    right: 0;
-    height: 40px;
-    background: linear-gradient(transparent, rgba(0, 245, 255, 0.03), transparent);
-    animation: scanline 4s linear infinite;
-    pointer-events: none;
-    z-index: 1;
+    content: ''; position: absolute; left: 0; right: 0; height: 60px;
+    background: linear-gradient(transparent, rgba(0,245,255,0.04), transparent);
+    animation: scanMove 5s linear infinite; pointer-events: none; z-index: 1;
   }
 
-  /* Hero glow orbs */
+  /* Floating glow orbs */
   .glow-orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.15;
-    animation: float 6s ease-in-out infinite;
-    pointer-events: none;
+    position: absolute; border-radius: 50%;
+    filter: blur(80px); opacity: 0.12; pointer-events: none;
+  }
+
+  .glow-orb-1 { animation: orbFloat1 8s ease-in-out infinite; }
+  .glow-orb-2 { animation: orbFloat2 10s ease-in-out infinite; }
+
+  /* Live pulsing dot */
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #00ff88;
+    animation: pulseDot 1.5s ease-in-out infinite;
   }
 }
