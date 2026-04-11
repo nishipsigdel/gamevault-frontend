@@ -1,13 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import FileCard from "../components/FileCard";
 import ActivityFeed from "../components/ActivityFeed";
 import { useAuth } from "../context/AuthContext";
-import API_URL from "../api.js";  // ← ADDED THIS LINE
+import API_URL from "../api";
 
 const CATEGORIES = ["All", "Mod", "Save File", "Patch", "Tool", "Map", "Other"];
-const CATEGORY_ICONS = { All: "🎮", Mod: "⚙️", "Save File": "💾", Patch: "🔧", Tool: "🛠️", Map: "🗺️", Other: "📁" };
+const CATEGORY_ICONS = {
+  All: "🎮", Mod: "⚙️", "Save File": "💾", Patch: "🔧",
+  Tool: "🛠️", Map: "🗺️", Other: "📁",
+};
+
+// Animated number counter hook
+function useCountUp(target, duration = 1500) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (target === 0) return;
+    let start = 0;
+    const step = target / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setCount(target); clearInterval(timer); }
+      else setCount(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target]);
+  return count;
+}
+
+function StatCounter({ value, label, color }) {
+  const count = useCountUp(Number(value) || 0);
+  return (
+    <div className="text-center animate-fade-in-up">
+      <div className="text-4xl font-bold" style={{ fontFamily: "Rajdhani", color, textShadow: `0 0 15px ${color}` }}>
+        {count}
+      </div>
+      <div className="text-xs mt-1" style={{ color: "var(--text-muted)", fontFamily: "Share Tech Mono" }}>
+        {label}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const { user } = useAuth();
@@ -17,6 +51,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [stats, setStats] = useState({ files: 0, downloads: 0 });
+  const [heroVisible, setHeroVisible] = useState(false);
+  const heroRef = useRef(null);
 
   const fetchFiles = async () => {
     setLoading(true); setError("");
@@ -24,9 +60,12 @@ export default function Home() {
       const params = {};
       if (search) params.search = search;
       if (category !== "All") params.category = category;
-      const res = await axios.get(`${API_URL}/api/files`, { params });  // ← FIXED THIS LINE
+      const res = await axios.get(`${API_URL}/api/files`, { params });
       setFiles(res.data);
-      setStats({ files: res.data.length, downloads: res.data.reduce((a, f) => a + f.downloads, 0) });
+      setStats({
+        files: res.data.length,
+        downloads: res.data.reduce((a, f) => a + (Number(f.downloads) || 0), 0),
+      });
     } catch {
       setError("Failed to load files. Is the backend running?");
     } finally {
@@ -36,70 +75,98 @@ export default function Home() {
 
   useEffect(() => { fetchFiles(); }, [category]);
 
+  // Trigger hero animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => setHeroVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleDownload = async (fileId, fileName) => {
     try {
-      const res = await axios.get(`${API_URL}/api/files/${fileId}/download`, { responseType: "blob" });  // ← FIXED THIS LINE
+      const res = await axios.get(`${API_URL}/api/files/${fileId}/download`, { responseType: "blob" });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a");
       a.href = url; a.download = fileName; a.click();
       window.URL.revokeObjectURL(url);
       setFiles((prev) => prev.map((f) => f.id === fileId ? { ...f, downloads: f.downloads + 1 } : f));
-    } catch {
-      alert("Download failed.");
-    }
+    } catch { alert("Download failed."); }
   };
 
   return (
     <div className="flex flex-col gap-8">
       {/* Hero */}
-      <div className="relative rounded-2xl overflow-hidden scanline"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)", padding: "3rem 2rem", textAlign: "center" }}>
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(0,245,255,0.08) 0%, transparent 70%)" }} />
+      <div
+        ref={heroRef}
+        className="relative rounded-2xl overflow-hidden scanline"
+        style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          padding: "4rem 2rem",
+          textAlign: "center",
+          opacity: heroVisible ? 1 : 0,
+          transition: "opacity 0.6s ease",
+        }}
+      >
+        {/* Animated glow orbs */}
+        <div className="glow-orb" style={{ width: "300px", height: "300px", background: "var(--neon)", top: "-100px", left: "-100px", animationDelay: "0s" }} />
+        <div className="glow-orb" style={{ width: "200px", height: "200px", background: "var(--plasma)", bottom: "-80px", right: "-80px", animationDelay: "3s" }} />
+
+        {/* Top gradient line */}
         <div className="absolute top-0 left-0 right-0 h-px"
           style={{ background: "linear-gradient(90deg, transparent, var(--neon), var(--plasma), transparent)" }} />
 
         <div className="relative">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded mb-6"
-            style={{ background: "rgba(0,245,255,0.08)", border: "1px solid rgba(0,245,255,0.2)" }}>
-            <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#00ff88" }} />
+          {/* Live badge */}
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded mb-6 animate-fade-in"
+            style={{ background: "rgba(0,245,255,0.08)", border: "1px solid rgba(0,245,255,0.2)", animationDelay: "0.2s", opacity: 0 }}
+          >
+            <span className="w-2 h-2 rounded-full" style={{ background: "#00ff88", boxShadow: "0 0 6px #00ff88", animation: "glowPulse 1.5s ease-in-out infinite" }} />
             <span style={{ color: "var(--neon)", fontFamily: "Share Tech Mono", fontSize: "0.75rem" }}>
               SYSTEM ONLINE — LIVE FILE SHARING
             </span>
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-bold mb-4" style={{ fontFamily: "Rajdhani", lineHeight: 1.1 }}>
-            <span style={{ color: "var(--text-primary)" }}>SHARE &</span>
-            <br />
-            <span style={{ color: "var(--neon)", textShadow: "0 0 30px var(--neon)" }}>DOWNLOAD</span>
-            <br />
-            <span style={{ color: "var(--plasma)", textShadow: "0 0 30px var(--plasma)" }}>GAME FILES</span>
-          </h1>
+          {/* Main heading with stagger */}
+          <div className="stagger-children mb-4">
+            <h1 className="text-5xl sm:text-7xl font-bold" style={{ fontFamily: "Rajdhani", lineHeight: 1.1, color: "var(--text-primary)" }}>
+              SHARE &
+            </h1>
+            <h1 className="text-5xl sm:text-7xl font-bold animate-neon-flicker" style={{ fontFamily: "Rajdhani", lineHeight: 1.1, color: "var(--neon)" }}>
+              DOWNLOAD
+            </h1>
+            <h1 className="text-5xl sm:text-7xl font-bold" style={{ fontFamily: "Rajdhani", lineHeight: 1.1, color: "var(--plasma)", textShadow: "0 0 30px var(--plasma)" }}>
+              GAME FILES
+            </h1>
+          </div>
 
-          <p className="text-lg max-w-xl mx-auto mb-8" style={{ color: "var(--text-secondary)" }}>
+          <p
+            className="text-lg max-w-xl mx-auto mb-10 animate-fade-in"
+            style={{ color: "var(--text-secondary)", animationDelay: "0.6s", opacity: 0 }}
+          >
             Mods, save files, patches, tools — everything the gaming community needs.
           </p>
 
-          <div className="flex items-center justify-center gap-8 mb-8">
-            {[
-              { label: "FILES", value: stats.files, color: "var(--neon)" },
-              { label: "DOWNLOADS", value: stats.downloads, color: "var(--plasma)" },
-              { label: "RATING", value: "5.0★", color: "#fbbf24" },
-            ].map((s, i) => (
-              <div key={i} className="text-center">
-                <div className="text-3xl font-bold" style={{ fontFamily: "Rajdhani", color: s.color, textShadow: `0 0 10px ${s.color}` }}>
-                  {s.value}
-                </div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)", fontFamily: "Share Tech Mono" }}>
-                  {s.label}
-                </div>
+          {/* Animated Stats */}
+          <div className="flex items-center justify-center gap-12 mb-10">
+            <StatCounter value={stats.files} label="FILES SHARED" color="var(--neon)" />
+            <div style={{ width: "1px", height: "40px", background: "var(--border)" }} />
+            <StatCounter value={stats.downloads} label="DOWNLOADS" color="var(--plasma)" />
+            <div style={{ width: "1px", height: "40px", background: "var(--border)" }} />
+            <div className="text-center animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+              <div className="text-4xl font-bold" style={{ fontFamily: "Rajdhani", color: "#fbbf24", textShadow: "0 0 15px #fbbf24" }}>
+                ★ 5.0
               </div>
-            ))}
+              <div className="text-xs mt-1" style={{ color: "var(--text-muted)", fontFamily: "Share Tech Mono" }}>
+                COMMUNITY
+              </div>
+            </div>
           </div>
 
+          {/* CTA Buttons */}
           {!user && (
-            <div className="flex items-center justify-center gap-3">
-              <Link to="/register" className="btn-primary px-8 py-3" style={{ fontSize: "1rem" }}>
+            <div className="flex items-center justify-center gap-3 animate-fade-in" style={{ animationDelay: "0.8s", opacity: 0 }}>
+              <Link to="/register" className="btn-primary px-8 py-3 animate-glow-pulse" style={{ fontSize: "1rem" }}>
                 🚀 GET STARTED
               </Link>
               <Link to="/login" className="btn-secondary px-8 py-3" style={{ fontSize: "1rem" }}>
@@ -110,9 +177,17 @@ export default function Home() {
         </div>
       </div>
 
-      <ActivityFeed />
+      {/* Activity Feed */}
+      <div className="animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+        <ActivityFeed />
+      </div>
 
-      <form onSubmit={(e) => { e.preventDefault(); fetchFiles(); }} className="flex gap-2">
+      {/* Search */}
+      <form
+        onSubmit={(e) => { e.preventDefault(); fetchFiles(); }}
+        className="flex gap-2 animate-fade-in-up"
+        style={{ animationDelay: "0.4s", opacity: 0 }}
+      >
         <div className="relative flex-1">
           <span className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>🔍</span>
           <input type="text" className="input-field pl-11 py-3"
@@ -122,7 +197,11 @@ export default function Home() {
         <button type="submit" className="btn-primary px-6 py-3">SEARCH</button>
       </form>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Category Filter */}
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 stagger-children"
+        style={{ animationDelay: "0.5s" }}
+      >
         {CATEGORIES.map((cat) => (
           <button key={cat} onClick={() => setCategory(cat)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all"
@@ -133,7 +212,8 @@ export default function Home() {
               border: `1px solid ${category === cat ? "var(--neon)" : "var(--border)"}`,
               color: category === cat ? "var(--neon)" : "var(--text-muted)",
               background: category === cat ? "rgba(0,245,255,0.08)" : "transparent",
-              boxShadow: category === cat ? "0 0 12px rgba(0,245,255,0.15)" : "none",
+              boxShadow: category === cat ? "0 0 15px rgba(0,245,255,0.2)" : "none",
+              transform: category === cat ? "translateY(-1px)" : "none",
             }}
           >
             <span>{CATEGORY_ICONS[cat]}</span> {cat.toUpperCase()}
@@ -141,8 +221,9 @@ export default function Home() {
         ))}
       </div>
 
+      {/* Results header */}
       {!loading && !error && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between animate-fade-in">
           <h2 style={{ fontFamily: "Rajdhani", fontSize: "1.25rem", color: "var(--text-primary)" }}>
             {category === "All" ? "ALL FILES" : category.toUpperCase()}
             <span className="ml-2 text-sm" style={{ color: "var(--text-muted)", fontFamily: "Share Tech Mono" }}>
@@ -153,25 +234,29 @@ export default function Home() {
         </div>
       )}
 
+      {/* File Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="card animate-pulse" style={{ height: "280px" }}>
-              <div className="h-40 rounded-lg mb-4" style={{ background: "var(--bg-secondary)" }} />
-              <div className="h-4 rounded mb-2" style={{ background: "var(--bg-secondary)", width: "75%" }} />
-              <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "50%" }} />
+            <div key={i} className="card animate-pulse" style={{ height: "320px", animationDelay: `${i * 0.1}s` }}>
+              <div style={{ height: "176px", background: "var(--bg-secondary)", borderRadius: "12px 12px 0 0" }} />
+              <div className="p-5">
+                <div className="h-4 rounded mb-2" style={{ background: "var(--bg-secondary)", width: "75%" }} />
+                <div className="h-3 rounded mb-4" style={{ background: "var(--bg-secondary)", width: "50%" }} />
+                <div className="h-3 rounded" style={{ background: "var(--bg-secondary)", width: "90%" }} />
+              </div>
             </div>
           ))}
         </div>
       ) : error ? (
-        <div className="text-center py-20">
-          <div className="text-5xl mb-4">⚠️</div>
+        <div className="text-center py-20 animate-scale-in">
+          <div className="text-5xl mb-4 animate-float">⚠️</div>
           <p style={{ color: "#ff6b35" }}>{error}</p>
           <button onClick={fetchFiles} className="btn-secondary mt-4 text-sm">TRY AGAIN</button>
         </div>
       ) : files.length === 0 ? (
-        <div className="card text-center py-20">
-          <div className="text-6xl mb-4">🎮</div>
+        <div className="card text-center py-20 animate-scale-in">
+          <div className="text-6xl mb-4 animate-float">🎮</div>
           <h3 style={{ fontFamily: "Rajdhani", fontSize: "1.5rem", color: "var(--text-primary)" }}>NO FILES FOUND</h3>
           <p className="mt-2 mb-6" style={{ color: "var(--text-muted)" }}>
             {search ? `No results for "${search}"` : "Be the first to upload!"}
@@ -179,8 +264,10 @@ export default function Home() {
           {user && <Link to="/upload" className="btn-primary inline-block px-8">UPLOAD FIRST FILE</Link>}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {files.map((file) => <FileCard key={file.id} file={file} onDownload={handleDownload} />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 card-grid">
+          {files.map((file) => (
+            <FileCard key={file.id} file={file} onDownload={handleDownload} />
+          ))}
         </div>
       )}
     </div>
