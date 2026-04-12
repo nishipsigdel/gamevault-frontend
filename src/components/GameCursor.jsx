@@ -16,7 +16,6 @@ export default function GameCursor() {
     const stopTrail = startTrailCanvas();
 
     if (isTouch) {
-      // Finger dot
       const dot = document.createElement("div");
       dot.style.cssText = `
         position:fixed; width:18px; height:18px;
@@ -38,13 +37,17 @@ export default function GameCursor() {
       `;
       document.body.appendChild(dotCore);
 
-      let hideTimer    = null;
-      let sparkInterval = null;
+      let hideTimer      = null;
+      let sparkInterval  = null;
+      let touchStartX    = 0;
+      let touchStartY    = 0;
+      let hasMoved       = false;
+      const SCROLL_THRESHOLD = 8;
 
       const moveTo = (x, y) => {
-        dot.style.display    = "block";
+        dot.style.display     = "block";
         dotCore.style.display = "block";
-        dot.style.left    = x + "px"; dot.style.top    = y + "px";
+        dot.style.left     = x + "px"; dot.style.top     = y + "px";
         dotCore.style.left = x + "px"; dotCore.style.top = y + "px";
         trailPoints.current.push({ x, y, age: 0 });
         if (trailPoints.current.length > 60) trailPoints.current.shift();
@@ -54,22 +57,34 @@ export default function GameCursor() {
         clearTimeout(hideTimer);
         clearInterval(sparkInterval);
         const t = e.touches[0];
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        hasMoved    = false;
         moveTo(t.clientX, t.clientY);
-        // Big aesthetic tap effect
-        aestheticTap(t.clientX, t.clientY);
         sparkInterval = setInterval(() => spawnSparks(t.clientX, t.clientY, 3), 50);
       };
 
       const onTouchMove = (e) => {
         clearInterval(sparkInterval);
         const t = e.touches[0];
+        const dx = Math.abs(t.clientX - touchStartX);
+        const dy = Math.abs(t.clientY - touchStartY);
+        if (dx > SCROLL_THRESHOLD || dy > SCROLL_THRESHOLD) {
+          hasMoved = true;
+        }
         moveTo(t.clientX, t.clientY);
-        spawnSparks(t.clientX, t.clientY, 2);
-        sparkInterval = setInterval(() => spawnSparks(t.clientX, t.clientY, 2), 50);
+        if (!hasMoved) {
+          spawnSparks(t.clientX, t.clientY, 2);
+          sparkInterval = setInterval(() => spawnSparks(t.clientX, t.clientY, 2), 50);
+        }
       };
 
-      const onTouchEnd = () => {
+      const onTouchEnd = (e) => {
         clearInterval(sparkInterval);
+        if (!hasMoved) {
+          const t = e.changedTouches[0];
+          aestheticTap(t.clientX, t.clientY);
+        }
         hideTimer = setTimeout(() => {
           dot.style.display = dotCore.style.display = "none";
           trailPoints.current = [];
@@ -92,9 +107,12 @@ export default function GameCursor() {
 
     // ── DESKTOP ──
     const cursor = cursorRef.current;
-    if (cursor) cursor.style.display = "block";
+    if (cursor) cursor.style.display = "none";
 
     const onMove = (e) => {
+      if (cursor && cursor.style.display === "none") {
+        cursor.style.display = "block";
+      }
       mouse.current = { x: e.clientX, y: e.clientY };
       trailPoints.current.push({ x: e.clientX, y: e.clientY, age: 0 });
       if (trailPoints.current.length > 60) trailPoints.current.shift();
@@ -132,11 +150,7 @@ export default function GameCursor() {
     };
   }, []);
 
-  // ══════════════════════════════════════════
-  //  AESTHETIC TAP EFFECT
-  // ══════════════════════════════════════════
   function aestheticTap(x, y) {
-    // 1. Hexagon burst lines radiating outward
     const numLines = 6;
     for (let i = 0; i < numLines; i++) {
       const angle = (i / numLines) * Math.PI * 2;
@@ -162,7 +176,6 @@ export default function GameCursor() {
       ], { duration: 500, easing: "ease-out" }).onfinish = () => line.remove();
     }
 
-    // 2. Three expanding rings with different colors and delays
     const rings = [
       { color: "var(--neon)",    size: 8,  delay: 0,   duration: 600 },
       { color: "var(--plasma)", size: 6,  delay: 80,  duration: 700 },
@@ -188,7 +201,6 @@ export default function GameCursor() {
       ], { duration, delay, easing: "cubic-bezier(0.2,0,0.8,1)", fill: "forwards" }).onfinish = () => ring.remove();
     });
 
-    // 3. Diamond / cross flash at center
     const diamond = document.createElement("div");
     diamond.style.cssText = `
       position: fixed;
@@ -208,7 +220,6 @@ export default function GameCursor() {
       { transform: "translate(-50%,-50%) rotate(45deg) scale(0)", opacity: 0 },
     ], { duration: 400, easing: "ease-out" }).onfinish = () => diamond.remove();
 
-    // 4. Inner neon dot flash
     const coreDot = document.createElement("div");
     coreDot.style.cssText = `
       position: fixed;
@@ -228,7 +239,6 @@ export default function GameCursor() {
       { transform: "translate(-50%,-50%) scale(0)",  opacity: 0 },
     ], { duration: 350, easing: "ease-out" }).onfinish = () => coreDot.remove();
 
-    // 5. Orbital arc particles (8 particles orbit then fly out)
     for (let i = 0; i < 8; i++) {
       const angle     = (i / 8) * Math.PI * 2;
       const orbitR    = 30;
@@ -250,11 +260,8 @@ export default function GameCursor() {
         transform: translate(-50%,-50%);
       `;
       document.body.appendChild(particle);
-
-      // First orbit inward to the ring radius, then fly outward
       const flyAngle = angle + (Math.random() - 0.5) * 0.8;
       const flyDist  = 80 + Math.random() * 60;
-
       particle.animate([
         { left: `${x}px`,  top: `${y}px`,  opacity: 1, transform: "translate(-50%,-50%) scale(1)" },
         { left: `${px}px`, top: `${py}px`, opacity: 1, transform: "translate(-50%,-50%) scale(1.3)" },
@@ -267,7 +274,6 @@ export default function GameCursor() {
       ], { duration: 600, easing: "ease-out", delay: i * 20 }).onfinish = () => particle.remove();
     }
 
-    // 6. Shockwave filled circle that expands
     const shock = document.createElement("div");
     shock.style.cssText = `
       position: fixed;
@@ -286,7 +292,6 @@ export default function GameCursor() {
     ], { duration: 600, easing: "ease-out" }).onfinish = () => shock.remove();
   }
 
-  // ── Regular sparks ──
   function spawnSparks(x, y, count = 2) {
     for (let i = 0; i < count; i++) {
       const el   = document.createElement("div");
@@ -312,12 +317,10 @@ export default function GameCursor() {
     }
   }
 
-  // ── Desktop click burst ──
   function spawnClickBurst(x, y) {
     aestheticTap(x, y);
   }
 
-  // ── Trail canvas ──
   function startTrailCanvas() {
     const canvas = trailCanvasRef.current;
     if (!canvas) return () => {};
@@ -363,7 +366,6 @@ export default function GameCursor() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onResize); };
   }
 
-  // ── Background canvas ──
   function startBgCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return () => {};
