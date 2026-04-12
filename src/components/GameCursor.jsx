@@ -20,7 +20,6 @@ export default function GameCursor() {
     plasmaColor: "160,48,240"
   };
 
-  // Unified cursor update function
   const updateCursorPosition = (x, y) => {
     mouse.current = { x, y };
     trailPoints.current.push({ x, y, age: 0 });
@@ -34,11 +33,9 @@ export default function GameCursor() {
     const stopBg    = startBgCanvas();
     const stopTrail = startTrailCanvas();
 
-    // Show custom cursor
     if (cursorRef.current) cursorRef.current.style.display = "block";
 
     if (isTouch) {
-      // TOUCH: Same visual style as desktop, but follows finger
       let hideTimer = null;
       
       const onTouchStart = (e) => {
@@ -46,7 +43,7 @@ export default function GameCursor() {
         setIsVisible(true);
         const t = e.touches[0];
         updateCursorPosition(t.clientX, t.clientY);
-        outerPos.current = { x: t.clientX, y: t.clientY }; // Snap immediately on touch
+        outerPos.current = { x: t.clientX, y: t.clientY };
         spawnClickBurst(t.clientX, t.clientY);
         cursorRef.current?.classList.add("clicking");
       };
@@ -68,7 +65,6 @@ export default function GameCursor() {
       document.addEventListener("touchmove",  onTouchMove,  { passive: true });
       document.addEventListener("touchend",   onTouchEnd,   { passive: true });
 
-      // Animation loop for touch (same physics as desktop)
       let raf;
       const loop = () => {
         outerPos.current.x += (mouse.current.x - outerPos.current.x) * CONFIG.followSpeed;
@@ -97,7 +93,6 @@ export default function GameCursor() {
       };
     }
 
-    // DESKTOP: Same as before
     const onMouseMove = (e) => {
       if (!isVisible) setIsVisible(true);
       updateCursorPosition(e.clientX, e.clientY);
@@ -121,7 +116,6 @@ export default function GameCursor() {
     document.addEventListener("mousedown", onDown);
     document.addEventListener("mouseup",   onUp);
 
-    // Hover effects on interactive elements
     const interactive = document.querySelectorAll('a, button, input, [role="button"], [data-cursor]');
     const onElEnter = () => {
       outerRef.current?.classList.add('hovering');
@@ -170,83 +164,41 @@ export default function GameCursor() {
     };
   }, [isVisible]);
 
-  // Unified click/tap burst effect
+  // Simplified click effect - just one clean ring
   function spawnClickBurst(x, y) {
-    // Hexagon burst lines
-    const numLines = 6;
-    for (let i = 0; i < numLines; i++) {
-      const angle = (i / numLines) * Math.PI * 2;
-      const line  = document.createElement("div");
-      line.style.cssText = `
-        position: fixed; left: ${x}px; top: ${y}px;
-        width: 50px; height: 2px;
-        background: linear-gradient(90deg, rgb(${CONFIG.neonColor}), transparent);
-        transform-origin: 0 50%;
-        transform: translate(0, -50%) rotate(${angle}rad);
-        pointer-events: none; z-index: 99998;
-        box-shadow: 0 0 8px rgb(${CONFIG.neonColor});
-      `;
-      document.body.appendChild(line);
-      line.animate([
-        { opacity: 1, transform: `translate(0,-50%) rotate(${angle}rad) scaleX(0)` },
-        { opacity: 0, transform: `translate(0,-50%) rotate(${angle}rad) scaleX(1.5)` }
-      ], { duration: 400, easing: "ease-out" }).onfinish = () => line.remove();
-    }
+    const ring = document.createElement("div");
+    ring.style.cssText = `
+      position: fixed; left: ${x}px; top: ${y}px;
+      width: 8px; height: 8px;
+      border: 2px solid rgb(${CONFIG.neonColor});
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none; z-index: 99998;
+      box-shadow: 0 0 10px rgb(${CONFIG.neonColor});
+    `;
+    document.body.appendChild(ring);
+    
+    ring.animate([
+      { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
+      { transform: "translate(-50%,-50%) scale(4)", opacity: 0 }
+    ], { duration: 300, easing: "ease-out" }).onfinish = () => ring.remove();
 
-    // Expanding rings
-    const rings = [
-      { color: `rgb(${CONFIG.neonColor})`, size: 6, delay: 0 },
-      { color: `rgb(${CONFIG.plasmaColor})`, size: 4, delay: 100 },
-    ];
-    rings.forEach(({ color, size, delay }) => {
-      const ring = document.createElement("div");
-      ring.style.cssText = `
-        position: fixed; left: ${x}px; top: ${y}px;
-        width: ${size}px; height: ${size}px;
-        border: 2px solid ${color}; border-radius: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: none; z-index: 99998;
-        box-shadow: 0 0 12px ${color};
-      `;
-      document.body.appendChild(ring);
-      ring.animate([
-        { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
-        { transform: "translate(-50%,-50%) scale(6)", opacity: 0 }
-      ], { duration: 500, delay, easing: "ease-out" }).onfinish = () => ring.remove();
-    });
-
-    // Center flash
     const flash = document.createElement("div");
     flash.style.cssText = `
       position: fixed; left: ${x}px; top: ${y}px;
-      width: 8px; height: 8px; background: white;
-      border-radius: 50%; transform: translate(-50%, -50%);
+      width: 4px; height: 4px;
+      background: white;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
       pointer-events: none; z-index: 99999;
-      box-shadow: 0 0 20px white, 0 0 40px rgb(${CONFIG.neonColor});
+      box-shadow: 0 0 10px white, 0 0 20px rgb(${CONFIG.neonColor});
     `;
     document.body.appendChild(flash);
+    
     flash.animate([
-      { transform: "translate(-50%,-50%) scale(0)", opacity: 1 },
+      { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
       { transform: "translate(-50%,-50%) scale(2)", opacity: 0 }
-    ], { duration: 300, easing: "ease-out" }).onfinish = () => flash.remove();
-
-    // Orbital particles
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const particle = document.createElement("div");
-      particle.style.cssText = `
-        position: fixed; left: ${x}px; top: ${y}px;
-        width: 3px; height: 3px; background: rgb(${CONFIG.neonColor});
-        border-radius: 50%; pointer-events: none; z-index: 99998;
-        box-shadow: 0 0 6px rgb(${CONFIG.neonColor});
-      `;
-      document.body.appendChild(particle);
-      const flyDist = 60 + Math.random() * 40;
-      particle.animate([
-        { transform: "translate(-50%,-50%)", opacity: 1 },
-        { transform: `translate(calc(-50% + ${Math.cos(angle)*flyDist}px), calc(-50% + ${Math.sin(angle)*flyDist}px))`, opacity: 0 }
-      ], { duration: 500, delay: i * 30, easing: "ease-out" }).onfinish = () => particle.remove();
-    }
+    ], { duration: 200, easing: "ease-out" }).onfinish = () => flash.remove();
   }
 
   function startTrailCanvas() {
@@ -384,7 +336,6 @@ export default function GameCursor() {
           transform: translate(-50%, -50%);
         }
         
-        /* Crosshair lines */
         .cursor-outer::before {
           width: 8px; height: 1px;
           left: 50%; top: 0;
