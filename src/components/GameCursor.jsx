@@ -7,52 +7,57 @@ export default function GameCursor() {
   const canvasRef = useRef(null);
   const mouse     = useRef({ x: 0, y: 0 });
   const outer     = useRef({ x: 0, y: 0 });
-  const trailTimeout = useRef(null);
 
   useEffect(() => {
-    // ── Detect touch device ──
     const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
-    if (isTouch) return; // don't show custom cursor on phones/tablets
 
+    // ── TOUCH DEVICES — show ripple on tap ──
+    if (isTouch) {
+      const onTouch = (e) => {
+        Array.from(e.changedTouches).forEach((touch) => {
+          spawnTouchRipple(touch.clientX, touch.clientY);
+        });
+      };
+      document.addEventListener("touchstart", onTouch, { passive: true });
+
+      // Background canvas still runs on mobile
+      startCanvas();
+
+      return () => {
+        document.removeEventListener("touchstart", onTouch);
+      };
+    }
+
+    // ── DESKTOP — custom cursor ──
     const cursor = cursorRef.current;
-    if (!cursor) return;
-    cursor.style.display = "block";
+    if (cursor) cursor.style.display = "block";
 
-    // ── Mouse move ──
     const onMove = (e) => {
       mouse.current = { x: e.clientX, y: e.clientY };
-
-      // Spawn trail particle
-      clearTimeout(trailTimeout.current);
       spawnTrail(e.clientX, e.clientY);
     };
 
-    // ── Hover detection ──
-    const onEnter = () => cursor.classList.add("hovering");
-    const onLeave = () => cursor.classList.remove("hovering");
-
-    // ── Click effect ──
-    const onDown = () => { cursor.classList.add("clicking"); spawnClickBurst(mouse.current.x, mouse.current.y); };
-    const onUp   = () => cursor.classList.remove("clicking");
+    const onEnter = () => cursor?.classList.add("hovering");
+    const onLeave = () => cursor?.classList.remove("hovering");
+    const onDown  = () => { cursor?.classList.add("clicking"); spawnClickBurst(mouse.current.x, mouse.current.y); };
+    const onUp    = () => cursor?.classList.remove("clicking");
 
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mousedown", onDown);
     document.addEventListener("mouseup",   onUp);
 
-    // Add hover class to all interactive elements
     const interactives = document.querySelectorAll("a,button,input,select,textarea,[role='button']");
     interactives.forEach((el) => {
       el.addEventListener("mouseenter", onEnter);
       el.addEventListener("mouseleave", onLeave);
     });
 
-    // ── Smooth cursor animation loop ──
+    // Smooth cursor follow loop
     let raf;
     const animate = () => {
       const speed = 0.12;
       outer.current.x += (mouse.current.x - outer.current.x) * speed;
       outer.current.y += (mouse.current.y - outer.current.y) * speed;
-
       if (innerRef.current) {
         innerRef.current.style.left = mouse.current.x + "px";
         innerRef.current.style.top  = mouse.current.y + "px";
@@ -65,11 +70,119 @@ export default function GameCursor() {
     };
     raf = requestAnimationFrame(animate);
 
-    // ── Background particle canvas ──
-    const canvas  = canvasRef.current;
-    const ctx     = canvas.getContext("2d");
-    let   width   = canvas.width  = window.innerWidth;
-    let   height  = canvas.height = window.innerHeight;
+    const stopCanvas = startCanvas();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      stopCanvas();
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("mouseup",   onUp);
+    };
+  }, []);
+
+  // ── Touch ripple effect ──
+  function spawnTouchRipple(x, y) {
+    // Outer expanding ring
+    const ring = document.createElement("div");
+    ring.style.cssText = `
+      position: fixed;
+      left: ${x}px; top: ${y}px;
+      width: 10px; height: 10px;
+      border: 2px solid var(--neon);
+      border-radius: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: none;
+      z-index: 99999;
+      box-shadow: 0 0 10px var(--neon);
+    `;
+    document.body.appendChild(ring);
+    ring.animate([
+      { transform: "translate(-50%,-50%) scale(1)",  opacity: 1 },
+      { transform: "translate(-50%,-50%) scale(5)",  opacity: 0 },
+    ], { duration: 600, easing: "ease-out" }).onfinish = () => ring.remove();
+
+    // Inner dot flash
+    const dot = document.createElement("div");
+    dot.style.cssText = `
+      position: fixed;
+      left: ${x}px; top: ${y}px;
+      width: 8px; height: 8px;
+      background: var(--neon);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 99999;
+      box-shadow: 0 0 15px var(--neon), 0 0 30px var(--neon);
+    `;
+    document.body.appendChild(dot);
+    dot.animate([
+      { opacity: 1, transform: "translate(-50%,-50%) scale(1)" },
+      { opacity: 0, transform: "translate(-50%,-50%) scale(0)" },
+    ], { duration: 400, easing: "ease-out" }).onfinish = () => dot.remove();
+
+    // Particle burst on tap
+    for (let i = 0; i < 6; i++) {
+      const p = document.createElement("div");
+      p.style.cssText = `
+        position: fixed;
+        left: ${x}px; top: ${y}px;
+        width: 4px; height: 4px;
+        background: ${Math.random() > 0.5 ? "var(--neon)" : "var(--plasma)"};
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 99999;
+      `;
+      document.body.appendChild(p);
+      const angle = (i / 6) * Math.PI * 2;
+      const dist  = Math.random() * 40 + 15;
+      p.animate([
+        { transform: `translate(-50%,-50%)`, opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(angle) * dist}px), calc(-50% + ${Math.sin(angle) * dist}px))`, opacity: 0 },
+      ], { duration: 500, easing: "ease-out" }).onfinish = () => p.remove();
+    }
+  }
+
+  // ── Trail particle (desktop) ──
+  function spawnTrail(x, y) {
+    const el = document.createElement("div");
+    el.className = "cursor-trail";
+    el.style.left       = x + "px";
+    el.style.top        = y + "px";
+    el.style.width      = Math.random() * 4 + 2 + "px";
+    el.style.height     = el.style.width;
+    el.style.background = Math.random() > 0.5 ? "var(--neon)" : "var(--plasma)";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 600);
+  }
+
+  // ── Click burst (desktop) ──
+  function spawnClickBurst(x, y) {
+    for (let i = 0; i < 8; i++) {
+      const el = document.createElement("div");
+      el.className        = "cursor-trail";
+      el.style.left       = x + "px";
+      el.style.top        = y + "px";
+      el.style.background = Math.random() > 0.5 ? "var(--neon)" : "var(--plasma)";
+      el.style.width      = "4px";
+      el.style.height     = "4px";
+      document.body.appendChild(el);
+      const angle = (i / 8) * Math.PI * 2;
+      const dist  = Math.random() * 30 + 10;
+      el.animate([
+        { transform: `translate(-50%,-50%)`,                                                                                    opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px))`, opacity: 0 },
+      ], { duration: 400, easing: "ease-out" }).onfinish = () => el.remove();
+    }
+  }
+
+  // ── Background canvas (runs on both desktop & mobile) ──
+  function startCanvas() {
+    const canvas = canvasRef.current;
+    if (!canvas) return () => {};
+    const ctx    = canvas.getContext("2d");
+    let width    = canvas.width  = window.innerWidth;
+    let height   = canvas.height = window.innerHeight;
 
     const onResize = () => {
       width  = canvas.width  = window.innerWidth;
@@ -77,151 +190,104 @@ export default function GameCursor() {
     };
     window.addEventListener("resize", onResize);
 
-    // Particle system
-    const particles = [];
-    const PARTICLE_COUNT = 80;
-
-    class Particle {
-      constructor() { this.reset(); }
-      reset() {
-        this.x    = Math.random() * width;
-        this.y    = Math.random() * height;
-        this.size = Math.random() * 1.5 + 0.3;
-        this.speedX = (Math.random() - 0.5) * 0.4;
-        this.speedY = (Math.random() - 0.5) * 0.4 - 0.1;
-        this.opacity  = Math.random() * 0.6 + 0.1;
-        this.color    = Math.random() > 0.5 ? "0,245,255" : "160,48,240";
-        this.twinkle  = Math.random() * Math.PI * 2;
-        this.twinkleSpeed = Math.random() * 0.02 + 0.005;
-      }
-      update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        this.twinkle += this.twinkleSpeed;
-        this.opacity = (Math.sin(this.twinkle) * 0.3 + 0.4);
-        if (this.y < -5 || this.x < -5 || this.x > width + 5) this.reset();
-      }
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${this.color},${this.opacity})`;
-        ctx.shadowBlur  = 6;
-        ctx.shadowColor = `rgba(${this.color},0.8)`;
-        ctx.fill();
-      }
-    }
-
-    for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+    // Floating star particles
+    const particles = Array.from({ length: 80 }, () => {
+      const p = {};
+      const reset = () => {
+        p.x    = Math.random() * width;
+        p.y    = Math.random() * height;
+        p.size = Math.random() * 1.5 + 0.3;
+        p.vx   = (Math.random() - 0.5) * 0.4;
+        p.vy   = (Math.random() - 0.5) * 0.4 - 0.1;
+        p.twinkle = Math.random() * Math.PI * 2;
+        p.twinkleSpeed = Math.random() * 0.02 + 0.005;
+        p.color = Math.random() > 0.5 ? "0,245,255" : "160,48,240";
+      };
+      p.reset = reset;
+      reset();
+      return p;
+    });
 
     // Shooting stars
-    const stars = [];
-    class ShootingStar {
-      constructor() { this.reset(); }
-      reset() {
-        this.x      = Math.random() * width;
-        this.y      = Math.random() * height * 0.5;
-        this.len    = Math.random() * 80 + 40;
-        this.speed  = Math.random() * 4 + 2;
-        this.angle  = Math.PI / 4;
-        this.opacity = 1;
-        this.active = false;
-        this.timer  = Math.random() * 300;
-      }
-      update() {
-        if (this.timer > 0) { this.timer--; return; }
-        this.active = true;
-        this.x     += Math.cos(this.angle) * this.speed;
-        this.y     += Math.sin(this.angle) * this.speed;
-        this.opacity -= 0.02;
-        if (this.opacity <= 0) this.reset();
-      }
-      draw() {
-        if (!this.active) return;
+    const shooters = Array.from({ length: 4 }, () => {
+      const s = {};
+      const reset = () => {
+        s.x       = Math.random() * width;
+        s.y       = Math.random() * height * 0.4;
+        s.len     = Math.random() * 80 + 40;
+        s.speed   = Math.random() * 4 + 2;
+        s.angle   = Math.PI / 4;
+        s.opacity = 1;
+        s.active  = false;
+        s.timer   = Math.random() * 300 + 100;
+      };
+      s.reset = reset;
+      reset();
+      return s;
+    });
+
+    let canvasRaf;
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw particles
+      particles.forEach((p) => {
+        p.x += p.vx; p.y += p.vy;
+        p.twinkle += p.twinkleSpeed;
+        const op = Math.sin(p.twinkle) * 0.3 + 0.4;
+        if (p.y < -5 || p.x < -5 || p.x > width + 5) p.reset();
         ctx.beginPath();
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x - Math.cos(this.angle) * this.len, this.y - Math.sin(this.angle) * this.len);
-        const grad = ctx.createLinearGradient(
-          this.x, this.y,
-          this.x - Math.cos(this.angle) * this.len,
-          this.y - Math.sin(this.angle) * this.len
-        );
-        grad.addColorStop(0, `rgba(0,245,255,${this.opacity})`);
-        grad.addColorStop(1, "transparent");
-        ctx.strokeStyle = grad;
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle    = `rgba(${p.color},${op})`;
+        ctx.shadowBlur   = 6;
+        ctx.shadowColor  = `rgba(${p.color},0.8)`;
+        ctx.fill();
+      });
+
+      // Draw shooting stars
+      shooters.forEach((s) => {
+        if (s.timer > 0) { s.timer--; return; }
+        s.active = true;
+        s.x     += Math.cos(s.angle) * s.speed;
+        s.y     += Math.sin(s.angle) * s.speed;
+        s.opacity -= 0.018;
+        if (s.opacity <= 0) { s.reset(); return; }
+        ctx.beginPath();
+        ctx.moveTo(s.x, s.y);
+        ctx.lineTo(s.x - Math.cos(s.angle) * s.len, s.y - Math.sin(s.angle) * s.len);
+        const g = ctx.createLinearGradient(s.x, s.y, s.x - Math.cos(s.angle)*s.len, s.y - Math.sin(s.angle)*s.len);
+        g.addColorStop(0, `rgba(0,245,255,${s.opacity})`);
+        g.addColorStop(1, "transparent");
+        ctx.strokeStyle = g;
         ctx.lineWidth   = 1.5;
         ctx.shadowBlur  = 10;
         ctx.shadowColor = "rgba(0,245,255,0.8)";
         ctx.stroke();
-      }
-    }
+      });
 
-    for (let i = 0; i < 4; i++) stars.push(new ShootingStar());
-
-    // Canvas animation loop
-    let canvasRaf;
-    const drawCanvas = () => {
-      ctx.clearRect(0, 0, width, height);
-      ctx.shadowBlur = 0;
-      particles.forEach((p) => { p.update(); p.draw(); });
-      stars.forEach((s)    => { s.update(); s.draw(); });
-      canvasRaf = requestAnimationFrame(drawCanvas);
+      canvasRaf = requestAnimationFrame(draw);
     };
-    canvasRaf = requestAnimationFrame(drawCanvas);
+    canvasRaf = requestAnimationFrame(draw);
 
     return () => {
-      cancelAnimationFrame(raf);
       cancelAnimationFrame(canvasRaf);
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("mouseup",   onUp);
       window.removeEventListener("resize", onResize);
     };
-  }, []);
-
-  // Spawn a trail particle
-  function spawnTrail(x, y) {
-    const el = document.createElement("div");
-    el.className = "cursor-trail";
-    el.style.left = x + "px";
-    el.style.top  = y + "px";
-    el.style.width  = Math.random() * 4 + 2 + "px";
-    el.style.height = el.style.width;
-    el.style.background = Math.random() > 0.5 ? "var(--neon)" : "var(--plasma)";
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 600);
-  }
-
-  // Burst particles on click
-  function spawnClickBurst(x, y) {
-    for (let i = 0; i < 8; i++) {
-      const el    = document.createElement("div");
-      el.className = "cursor-trail";
-      el.style.left     = x + "px";
-      el.style.top      = y + "px";
-      el.style.background = Math.random() > 0.5 ? "var(--neon)" : "var(--plasma)";
-      el.style.width    = "4px";
-      el.style.height   = "4px";
-      document.body.appendChild(el);
-
-      const angle = (i / 8) * Math.PI * 2;
-      const dist  = Math.random() * 30 + 10;
-      el.animate([
-        { transform: `translate(-50%,-50%) translate(0,0)`, opacity: 1 },
-        { transform: `translate(-50%,-50%) translate(${Math.cos(angle)*dist}px,${Math.sin(angle)*dist}px)`, opacity: 0 },
-      ], { duration: 400, easing: "ease-out" }).onfinish = () => el.remove();
-    }
   }
 
   return (
     <>
-      {/* Background particle canvas */}
+      {/* Background canvas — visible on all devices */}
       <canvas
         ref={canvasRef}
-        id="bg-canvas"
-        style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, opacity: 0.45 }}
+        style={{
+          position: "fixed", top: 0, left: 0,
+          width: "100%", height: "100%",
+          pointerEvents: "none", zIndex: 0, opacity: 0.45,
+        }}
       />
 
-      {/* Custom cursor — hidden on touch devices via CSS */}
+      {/* Custom cursor — only shown on desktop via JS */}
       <div id="game-cursor" ref={cursorRef}>
         <div ref={outerRef} className="cursor-outer" style={{ position: "fixed" }}>
           <div className="cursor-crosshair-h" />
