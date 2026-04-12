@@ -4,6 +4,7 @@ export default function GameCursor() {
   const cursorRef      = useRef(null);
   const outerRef       = useRef(null);
   const innerRef       = useRef(null);
+  const orbitRef       = useRef(null);
   const canvasRef      = useRef(null);
   const trailCanvasRef = useRef(null);
   
@@ -11,7 +12,7 @@ export default function GameCursor() {
   const mouse          = useRef({ x: -100, y: -100 });
   const outerPos       = useRef({ x: -100, y: -100 });
   const trailPoints    = useRef([]);
-  const rafId          = useRef(null);
+  const orbitAngle     = useRef(0);
 
   const CONFIG = {
     trailLength: 12,
@@ -70,6 +71,10 @@ export default function GameCursor() {
         outerPos.current.x += (mouse.current.x - outerPos.current.x) * CONFIG.followSpeed;
         outerPos.current.y += (mouse.current.y - outerPos.current.y) * CONFIG.followSpeed;
         
+        orbitAngle.current += 0.08;
+        const orbitX = Math.cos(orbitAngle.current) * 24;
+        const orbitY = Math.sin(orbitAngle.current) * 24;
+        
         if (innerRef.current) {
           innerRef.current.style.transform = `translate3d(${mouse.current.x}px, ${mouse.current.y}px, 0)`;
           innerRef.current.style.opacity = isVisible ? 1 : 0;
@@ -77,6 +82,10 @@ export default function GameCursor() {
         if (outerRef.current) {
           outerRef.current.style.transform = `translate3d(${outerPos.current.x}px, ${outerPos.current.y}px, 0)`;
           outerRef.current.style.opacity = isVisible ? 1 : 0;
+        }
+        if (orbitRef.current) {
+          orbitRef.current.style.transform = `translate3d(${mouse.current.x + orbitX}px, ${mouse.current.y + orbitY}px, 0)`;
+          orbitRef.current.style.opacity = isVisible ? 1 : 0;
         }
         
         raf = requestAnimationFrame(loop);
@@ -136,6 +145,10 @@ export default function GameCursor() {
       outerPos.current.x += (mouse.current.x - outerPos.current.x) * CONFIG.followSpeed;
       outerPos.current.y += (mouse.current.y - outerPos.current.y) * CONFIG.followSpeed;
       
+      orbitAngle.current += 0.08;
+      const orbitX = Math.cos(orbitAngle.current) * 24;
+      const orbitY = Math.sin(orbitAngle.current) * 24;
+      
       if (innerRef.current) {
         innerRef.current.style.transform = `translate3d(${mouse.current.x}px, ${mouse.current.y}px, 0)`;
         innerRef.current.style.opacity = isVisible ? 1 : 0;
@@ -143,6 +156,10 @@ export default function GameCursor() {
       if (outerRef.current) {
         outerRef.current.style.transform = `translate3d(${outerPos.current.x}px, ${outerPos.current.y}px, 0)`;
         outerRef.current.style.opacity = isVisible ? 1 : 0;
+      }
+      if (orbitRef.current) {
+        orbitRef.current.style.transform = `translate3d(${mouse.current.x + orbitX}px, ${mouse.current.y + orbitY}px, 0)`;
+        orbitRef.current.style.opacity = isVisible ? 1 : 0;
       }
       
       raf = requestAnimationFrame(loop);
@@ -164,7 +181,6 @@ export default function GameCursor() {
     };
   }, [isVisible]);
 
-  // Simplified click effect - just one clean ring
   function spawnClickBurst(x, y) {
     const ring = document.createElement("div");
     ring.style.cssText = `
@@ -351,6 +367,16 @@ export default function GameCursor() {
           background: rgba(${CONFIG.neonColor},0.05);
         }
         
+        .cursor-orbit {
+          position: fixed; left: 0; top: 0;
+          width: 6px; height: 6px;
+          background: rgb(${CONFIG.plasmaColor});
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          box-shadow: 0 0 8px rgb(${CONFIG.plasmaColor}), 0 0 16px rgb(${CONFIG.plasmaColor});
+          opacity: 0;
+        }
+        
         #game-cursor.clicking .cursor-inner {
           transform: translate(-50%, -50%) scale(0.5) !important;
         }
@@ -366,6 +392,7 @@ export default function GameCursor() {
       <div id="game-cursor" ref={cursorRef}>
         <div ref={outerRef} className="cursor-outer" />
         <div ref={innerRef} className="cursor-inner" />
+        <div ref={orbitRef} className="cursor-orbit" />
       </div>
     </>
   );
