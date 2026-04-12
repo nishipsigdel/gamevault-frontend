@@ -7,11 +7,11 @@ export default function GameCursor() {
   const canvasRef      = useRef(null);
   const trailCanvasRef = useRef(null);
 
-  // ✅ FIX: start at center
   const mouse = useRef({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
   });
+
   const outerPos = useRef({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
@@ -21,17 +21,94 @@ export default function GameCursor() {
 
   useEffect(() => {
     const isTouch = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
     const stopBg    = startBgCanvas();
     const stopTrail = startTrailCanvas();
 
+    // ─────────────────────────────
+    // 📱 TOUCH DEVICES (FIXED)
+    // ─────────────────────────────
     if (isTouch) {
+      const dot = document.createElement("div");
+      dot.style.cssText = `
+        position:fixed;
+        width:16px;height:16px;
+        border:2px solid var(--neon);
+        border-radius:50%;
+        pointer-events:none;
+        z-index:99999;
+        transform:translate(-50%,-50%);
+        box-shadow:0 0 10px var(--neon);
+        display:none;
+      `;
+      document.body.appendChild(dot);
+
+      const core = document.createElement("div");
+      core.style.cssText = `
+        position:fixed;
+        width:4px;height:4px;
+        background:var(--neon);
+        border-radius:50%;
+        pointer-events:none;
+        z-index:99999;
+        transform:translate(-50%,-50%);
+        display:none;
+      `;
+      document.body.appendChild(core);
+
+      let hideTimer;
+
+      const move = (x, y) => {
+        dot.style.display = "block";
+        core.style.display = "block";
+
+        dot.style.left = x + "px";
+        dot.style.top  = y + "px";
+        core.style.left = x + "px";
+        core.style.top  = y + "px";
+
+        trailPoints.current.push({ x, y, age: 0 });
+        if (trailPoints.current.length > 25) trailPoints.current.shift();
+      };
+
+      const onTouchStart = (e) => {
+        clearTimeout(hideTimer);
+        const t = e.touches[0];
+        move(t.clientX, t.clientY);
+        aestheticTap(t.clientX, t.clientY);
+      };
+
+      const onTouchMove = (e) => {
+        const t = e.touches[0];
+        move(t.clientX, t.clientY);
+      };
+
+      const onTouchEnd = () => {
+        hideTimer = setTimeout(() => {
+          dot.style.display = "none";
+          core.style.display = "none";
+          trailPoints.current = [];
+        }, 400);
+      };
+
+      document.addEventListener("touchstart", onTouchStart, { passive: true });
+      document.addEventListener("touchmove", onTouchMove, { passive: true });
+      document.addEventListener("touchend", onTouchEnd);
+
       return () => {
         stopBg();
         stopTrail();
+        dot.remove();
+        core.remove();
+        document.removeEventListener("touchstart", onTouchStart);
+        document.removeEventListener("touchmove", onTouchMove);
+        document.removeEventListener("touchend", onTouchEnd);
       };
     }
 
-    // ── DESKTOP ──
+    // ─────────────────────────────
+    // 🖥 DESKTOP
+    // ─────────────────────────────
     const cursor = cursorRef.current;
     if (cursor) cursor.style.display = "block";
 
@@ -39,13 +116,13 @@ export default function GameCursor() {
       mouse.current = { x: e.clientX, y: e.clientY };
 
       trailPoints.current.push({ x: e.clientX, y: e.clientY, age: 0 });
-      if (trailPoints.current.length > 25) trailPoints.current.shift(); // ✅ smaller trail
+      if (trailPoints.current.length > 25) trailPoints.current.shift();
 
-      spawnSparks(e.clientX, e.clientY, 1); // reduced
+      spawnSparks(e.clientX, e.clientY, 1);
     };
 
     const onDown = () => {
-      spawnClickBurst(mouse.current.x, mouse.current.y);
+      aestheticTap(mouse.current.x, mouse.current.y);
     };
 
     document.addEventListener("mousemove", onMove);
@@ -70,6 +147,7 @@ export default function GameCursor() {
 
       raf = requestAnimationFrame(loop);
     };
+
     raf = requestAnimationFrame(loop);
 
     return () => {
@@ -84,6 +162,7 @@ export default function GameCursor() {
   // ✨ CLEAN CLICK EFFECT
   function aestheticTap(x, y) {
     const ring = document.createElement("div");
+
     ring.style.cssText = `
       position: fixed;
       left: ${x}px; top: ${y}px;
@@ -95,81 +174,16 @@ export default function GameCursor() {
       z-index: 99998;
       box-shadow: 0 0 12px var(--neon);
     `;
+
     document.body.appendChild(ring);
 
     ring.animate([
       { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
       { transform: "translate(-50%,-50%) scale(6)", opacity: 0 },
     ], { duration: 500 }).onfinish = () => ring.remove();
-
-    // small particles
-    for (let i = 0; i < 5; i++) {
-      const p = document.createElement("div");
-      const size = Math.random() * 3 + 2;
-
-      p.style.cssText = `
-        position: fixed;
-        left: ${x}px; top: ${y}px;
-        width: ${size}px; height: ${size}px;
-        background: var(--neon);
-        border-radius: 50%;
-        pointer-events: none;
-        z-index: 99998;
-        box-shadow: 0 0 8px var(--neon);
-        transform: translate(-50%,-50%);
-      `;
-      document.body.appendChild(p);
-
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * 40 + 20;
-
-      p.animate([
-        { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
-        {
-          transform: `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px)) scale(0)`,
-          opacity: 0,
-        },
-      ], { duration: 400 }).onfinish = () => p.remove();
-    }
   }
 
-  function spawnClickBurst(x, y) {
-    aestheticTap(x, y);
-  }
-
-  // ✨ lighter sparks
-  function spawnSparks(x, y, count = 1) {
-    for (let i = 0; i < count; i++) {
-      const el = document.createElement("div");
-      const size = Math.random() * 3 + 2;
-
-      el.style.cssText = `
-        position:fixed;
-        left:${x}px; top:${y}px;
-        width:${size}px; height:${size}px;
-        background:var(--neon);
-        border-radius:50%;
-        pointer-events:none;
-        z-index:99997;
-        box-shadow:0 0 6px var(--neon);
-        transform:translate(-50%,-50%);
-      `;
-      document.body.appendChild(el);
-
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * 30 + 10;
-
-      el.animate([
-        { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
-        {
-          transform: `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px)) scale(0)`,
-          opacity: 0,
-        },
-      ], { duration: 300 }).onfinish = () => el.remove();
-    }
-  }
-
-  // ── Trail canvas (cleaner) ──
+  // ── Trail canvas ──
   function startTrailCanvas() {
     const canvas = trailCanvasRef.current;
     if (!canvas) return () => {};
@@ -177,12 +191,6 @@ export default function GameCursor() {
     const ctx = canvas.getContext("2d");
     let w = canvas.width = window.innerWidth;
     let h = canvas.height = window.innerHeight;
-
-    const onResize = () => {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", onResize);
 
     let raf;
     const draw = () => {
@@ -203,7 +211,7 @@ export default function GameCursor() {
         ctx.moveTo(alive[i - 1].x, alive[i - 1].y);
         ctx.lineTo(alive[i].x, alive[i].y);
         ctx.strokeStyle = `rgba(0,245,255,${op})`;
-        ctx.lineWidth = t * 2; // thinner
+        ctx.lineWidth = t * 2;
         ctx.lineCap = "round";
         ctx.stroke();
       }
@@ -212,14 +220,10 @@ export default function GameCursor() {
     };
 
     raf = requestAnimationFrame(draw);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onResize);
-    };
+    return () => cancelAnimationFrame(raf);
   }
 
-  // ── Background (unchanged but stable) ──
+  // ── Background ──
   function startBgCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return () => {};
@@ -228,13 +232,7 @@ export default function GameCursor() {
     let w = canvas.width = window.innerWidth;
     let h = canvas.height = window.innerHeight;
 
-    const onResize = () => {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", onResize);
-
-    const particles = Array.from({ length: 50 }, () => ({
+    const particles = Array.from({ length: 40 }, () => ({
       x: Math.random() * w,
       y: Math.random() * h,
       size: Math.random() * 1.5,
@@ -252,7 +250,7 @@ export default function GameCursor() {
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0,245,255,0.5)";
+        ctx.fillStyle = "rgba(0,245,255,0.4)";
         ctx.fill();
       });
 
@@ -260,21 +258,17 @@ export default function GameCursor() {
     };
 
     raf = requestAnimationFrame(draw);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onResize);
-    };
+    return () => cancelAnimationFrame(raf);
   }
 
   return (
     <>
-      <canvas ref={canvasRef} style={{ position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:0,opacity:0.4 }} />
+      <canvas ref={canvasRef} style={{ position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:0 }} />
       <canvas ref={trailCanvasRef} style={{ position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:2 }} />
 
-      <div id="game-cursor" ref={cursorRef}>
-        <div ref={outerRef} className="cursor-outer" style={{ position:"fixed" }} />
-        <div ref={innerRef} className="cursor-inner" style={{ position:"fixed" }} />
+      <div ref={cursorRef}>
+        <div ref={outerRef} style={{ position:"fixed" }} />
+        <div ref={innerRef} style={{ position:"fixed" }} />
       </div>
     </>
   );
