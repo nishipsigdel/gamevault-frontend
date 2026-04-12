@@ -93,6 +93,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-8">
+
       {/* Hero */}
       <div
         ref={heroRef}
@@ -172,14 +173,11 @@ export default function Home() {
         <ActivityFeed />
       </div>
 
-      {/* ── Search bar — opacity fixed, always visible ── */}
+      {/* Search */}
       <form
         onSubmit={(e) => { e.preventDefault(); fetchFiles(); }}
         className="flex gap-2"
-        style={{
-          opacity: 1,
-          animation: "fadeInUp 0.5s ease 0.4s both",
-        }}
+        style={{ opacity: 1, animation: "fadeInUp 0.5s ease 0.4s both" }}
       >
         <div className="relative flex-1">
           <span className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>🔍</span>
@@ -195,11 +193,7 @@ export default function Home() {
         <button
           type="submit"
           className="btn-primary px-6 py-3"
-          style={{
-            transition: "all 0.2s ease",
-            position: "relative",
-            overflow: "hidden",
-          }}
+          style={{ transition: "all 0.2s ease" }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = "translateY(-2px)";
             e.currentTarget.style.boxShadow = "0 0 20px rgba(0,245,255,0.5)";
@@ -213,8 +207,11 @@ export default function Home() {
         </button>
       </form>
 
-      {/* ── Category Filter — with hover animations ── */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Category Filter */}
+      <div
+        className="flex gap-2 overflow-x-auto pb-2 pt-2"
+        style={{ overflowY: "visible" }}
+      >
         {CATEGORIES.map((cat) => {
           const isActive  = category === cat;
           const isHovered = hoveredCat === cat;
@@ -229,8 +226,16 @@ export default function Home() {
                 fontFamily: "Rajdhani",
                 fontWeight: 700,
                 letterSpacing: "0.05em",
-                border: `1px solid ${isActive ? "var(--neon)" : isHovered ? "rgba(0,245,255,0.5)" : "var(--border)"}`,
-                color: isActive ? "var(--neon)" : isHovered ? "rgba(0,245,255,0.8)" : "var(--text-muted)",
+                border: `1px solid ${
+                  isActive  ? "var(--neon)" :
+                  isHovered ? "rgba(0,245,255,0.5)" :
+                  "var(--border)"
+                }`,
+                color: isActive
+                  ? "var(--neon)"
+                  : isHovered
+                  ? "rgba(0,245,255,0.8)"
+                  : "var(--text-muted)",
                 background: isActive
                   ? "rgba(0,245,255,0.08)"
                   : isHovered
@@ -241,7 +246,11 @@ export default function Home() {
                   : isHovered
                   ? "0 0 10px rgba(0,245,255,0.15)"
                   : "none",
-                transform: isActive ? "translateY(-2px)" : isHovered ? "translateY(-1px)" : "none",
+                transform: isActive
+                  ? "translateY(-2px)"
+                  : isHovered
+                  ? "translateY(-1px)"
+                  : "none",
                 transition: "all 0.18s ease",
                 cursor: "pointer",
               }}
@@ -308,6 +317,7 @@ export default function Home() {
           ))}
         </div>
       )}
+
     </div>
   );
 }
