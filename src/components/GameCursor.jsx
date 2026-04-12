@@ -8,7 +8,6 @@ export default function GameCursor() {
   const trailCanvasRef = useRef(null);
   const mouse          = useRef({ x: 0, y: 0 });
   const outerPos       = useRef({ x: 0, y: 0 });
-  const innerPos       = useRef({ x: 0, y: 0 });
   const trailPoints    = useRef([]);
 
   useEffect(() => {
@@ -17,84 +16,48 @@ export default function GameCursor() {
     const stopTrail = startTrailCanvas();
 
     if (isTouch) {
-      // ── TOUCH: same crosshair cursor as desktop ──
+      // ── TOUCH: reuse exact same CSS classes as desktop ──
       const touchCursor = document.createElement("div");
+      touchCursor.id = "game-cursor";
       touchCursor.style.cssText = `
-        position: fixed;
+        display: none;
         pointer-events: none;
         z-index: 99999;
-        display: none;
-        transform: translate(-50%, -50%);
       `;
 
-      // outer ring (same as desktop cursor-outer)
       const touchOuter = document.createElement("div");
-      touchOuter.style.cssText = `
-        position: absolute;
-        width: 36px; height: 36px;
-        border: 1.5px solid rgba(0,245,255,0.6);
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 0 10px rgba(0,245,255,0.3), inset 0 0 10px rgba(0,245,255,0.05);
-        transition: width 0.15s, height 0.15s, border-color 0.15s;
-      `;
+      touchOuter.className = "cursor-outer";
+      touchOuter.style.position = "fixed";
 
-      // crosshair H
       const crossH = document.createElement("div");
-      crossH.style.cssText = `
-        position: absolute;
-        width: 12px; height: 1px;
-        background: var(--neon);
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 0 4px var(--neon);
-      `;
-
-      // crosshair V
+      crossH.className = "cursor-crosshair-h";
       const crossV = document.createElement("div");
-      crossV.style.cssText = `
-        position: absolute;
-        width: 1px; height: 12px;
-        background: var(--neon);
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 0 4px var(--neon);
-      `;
-
-      // inner dot
-      const touchInner = document.createElement("div");
-      touchInner.style.cssText = `
-        position: absolute;
-        width: 5px; height: 5px;
-        background: var(--neon);
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 0 8px var(--neon), 0 0 16px rgba(0,245,255,0.5);
-      `;
-
+      crossV.className = "cursor-crosshair-v";
       touchOuter.appendChild(crossH);
       touchOuter.appendChild(crossV);
+
+      const touchInner = document.createElement("div");
+      touchInner.className = "cursor-inner";
+      touchInner.style.position = "fixed";
+
       touchCursor.appendChild(touchOuter);
       touchCursor.appendChild(touchInner);
       document.body.appendChild(touchCursor);
 
-      // smooth position refs for touch
-      const touchPos    = { x: 0, y: 0 };
       const touchTarget = { x: 0, y: 0 };
       const touchOuPos  = { x: 0, y: 0 };
       let touchRaf      = null;
 
       const touchLoop = () => {
-        const s = 0.18; // slightly faster than desktop for touch feel
         const os = 0.10;
-        touchPos.x  += (touchTarget.x - touchPos.x)  * s;
-        touchPos.y  += (touchTarget.y - touchPos.y)  * s;
         touchOuPos.x += (touchTarget.x - touchOuPos.x) * os;
         touchOuPos.y += (touchTarget.y - touchOuPos.y) * os;
-        touchCursor.style.left = touchTarget.x + "px";
-        touchCursor.style.top  = touchTarget.y + "px";
-        touchOuter.style.left  = (touchOuPos.x - touchTarget.x) + "px";
-        touchOuter.style.top   = (touchOuPos.y - touchTarget.y) + "px";
+        // inner dot follows finger exactly
+        touchInner.style.left = touchTarget.x + "px";
+        touchInner.style.top  = touchTarget.y + "px";
+        // outer ring lags behind
+        touchOuter.style.left = touchOuPos.x + "px";
+        touchOuter.style.top  = touchOuPos.y + "px";
         touchRaf = requestAnimationFrame(touchLoop);
       };
 
@@ -117,19 +80,16 @@ export default function GameCursor() {
         clearTimeout(hideTimer);
         clearInterval(sparkInterval);
         const t = e.touches[0];
-        touchStartX = t.clientX;
-        touchStartY = t.clientY;
-        hasMoved    = false;
-        // snap to position on first touch
+        touchStartX   = t.clientX;
+        touchStartY   = t.clientY;
+        hasMoved      = false;
+        // snap outer ring to finger on first touch
         touchTarget.x = t.clientX;
         touchTarget.y = t.clientY;
         touchOuPos.x  = t.clientX;
         touchOuPos.y  = t.clientY;
         moveTo(t.clientX, t.clientY);
-        // scale up outer ring on press
-        touchOuter.style.width  = "28px";
-        touchOuter.style.height = "28px";
-        touchOuter.style.borderColor = "rgba(0,245,255,1)";
+        touchOuter.classList.add("clicking");
         sparkInterval = setInterval(() => spawnSparks(t.clientX, t.clientY, 2), 60);
       };
 
@@ -140,10 +100,7 @@ export default function GameCursor() {
         const dy = Math.abs(t.clientY - touchStartY);
         if (dx > SCROLL_THRESHOLD || dy > SCROLL_THRESHOLD) {
           hasMoved = true;
-          // restore ring size while scrolling
-          touchOuter.style.width  = "36px";
-          touchOuter.style.height = "36px";
-          touchOuter.style.borderColor = "rgba(0,245,255,0.6)";
+          touchOuter.classList.remove("clicking");
         }
         moveTo(t.clientX, t.clientY);
         if (!hasMoved) {
@@ -153,10 +110,7 @@ export default function GameCursor() {
 
       const onTouchEnd = (e) => {
         clearInterval(sparkInterval);
-        // restore ring
-        touchOuter.style.width  = "36px";
-        touchOuter.style.height = "36px";
-        touchOuter.style.borderColor = "rgba(0,245,255,0.6)";
+        touchOuter.classList.remove("clicking");
         if (!hasMoved) {
           const t = e.changedTouches[0];
           aestheticTap(t.clientX, t.clientY);
@@ -197,7 +151,6 @@ export default function GameCursor() {
       spawnSparks(e.clientX, e.clientY, 2);
     };
 
-    // hide when mouse leaves the window
     const onLeaveWindow = () => {
       if (cursor) cursor.style.display = "none";
       trailPoints.current = [];
@@ -219,7 +172,7 @@ export default function GameCursor() {
 
     let raf;
     const loop = () => {
-      const s  = 0.12;
+      const s = 0.12;
       outerPos.current.x += (mouse.current.x - outerPos.current.x) * s;
       outerPos.current.y += (mouse.current.y - outerPos.current.y) * s;
       if (innerRef.current) {
