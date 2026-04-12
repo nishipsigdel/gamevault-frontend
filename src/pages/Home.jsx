@@ -12,7 +12,6 @@ const CATEGORY_ICONS = {
   Tool: "🛠️", Map: "🗺️", Other: "📁",
 };
 
-// Animated number counter hook
 function useCountUp(target, duration = 1500) {
   const [count, setCount] = useState(0);
   useEffect(() => {
@@ -52,6 +51,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [stats, setStats] = useState({ files: 0, downloads: 0 });
   const [heroVisible, setHeroVisible] = useState(false);
+  const [hoveredCat, setHoveredCat] = useState(null);
   const heroRef = useRef(null);
 
   const fetchFiles = async () => {
@@ -75,7 +75,6 @@ export default function Home() {
 
   useEffect(() => { fetchFiles(); }, [category]);
 
-  // Trigger hero animation on mount
   useEffect(() => {
     const timer = setTimeout(() => setHeroVisible(true), 100);
     return () => clearTimeout(timer);
@@ -107,16 +106,12 @@ export default function Home() {
           transition: "opacity 0.6s ease",
         }}
       >
-        {/* Animated glow orbs */}
         <div className="glow-orb" style={{ width: "300px", height: "300px", background: "var(--neon)", top: "-100px", left: "-100px", animationDelay: "0s" }} />
         <div className="glow-orb" style={{ width: "200px", height: "200px", background: "var(--plasma)", bottom: "-80px", right: "-80px", animationDelay: "3s" }} />
-
-        {/* Top gradient line */}
         <div className="absolute top-0 left-0 right-0 h-px"
           style={{ background: "linear-gradient(90deg, transparent, var(--neon), var(--plasma), transparent)" }} />
 
         <div className="relative">
-          {/* Live badge */}
           <div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded mb-6 animate-fade-in"
             style={{ background: "rgba(0,245,255,0.08)", border: "1px solid rgba(0,245,255,0.2)", animationDelay: "0.2s", opacity: 0 }}
@@ -127,7 +122,6 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Main heading with stagger */}
           <div className="stagger-children mb-4">
             <h1 className="text-5xl sm:text-7xl font-bold" style={{ fontFamily: "Rajdhani", lineHeight: 1.1, color: "var(--text-primary)" }}>
               SHARE &
@@ -140,14 +134,11 @@ export default function Home() {
             </h1>
           </div>
 
-          <p
-            className="text-lg max-w-xl mx-auto mb-10 animate-fade-in"
-            style={{ color: "var(--text-secondary)", animationDelay: "0.6s", opacity: 0 }}
-          >
+          <p className="text-lg max-w-xl mx-auto mb-10 animate-fade-in"
+            style={{ color: "var(--text-secondary)", animationDelay: "0.6s", opacity: 0 }}>
             Mods, save files, patches, tools — everything the gaming community needs.
           </p>
 
-          {/* Animated Stats */}
           <div className="flex items-center justify-center gap-12 mb-10">
             <StatCounter value={stats.files} label="FILES SHARED" color="var(--neon)" />
             <div style={{ width: "1px", height: "40px", background: "var(--border)" }} />
@@ -163,7 +154,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* CTA Buttons */}
           {!user && (
             <div className="flex items-center justify-center gap-3 animate-fade-in" style={{ animationDelay: "0.8s", opacity: 0 }}>
               <Link to="/register" className="btn-primary px-8 py-3 animate-glow-pulse" style={{ fontSize: "1rem" }}>
@@ -182,43 +172,91 @@ export default function Home() {
         <ActivityFeed />
       </div>
 
-      {/* Search */}
+      {/* ── Search bar — opacity fixed, always visible ── */}
       <form
         onSubmit={(e) => { e.preventDefault(); fetchFiles(); }}
-        className="flex gap-2 animate-fade-in-up"
-        style={{ animationDelay: "0.4s", opacity: 0 }}
+        className="flex gap-2"
+        style={{
+          opacity: 1,
+          animation: "fadeInUp 0.5s ease 0.4s both",
+        }}
       >
         <div className="relative flex-1">
           <span className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }}>🔍</span>
-          <input type="text" className="input-field pl-11 py-3"
+          <input
+            type="text"
+            className="input-field pl-11 py-3"
             placeholder="Search by title or game name..."
-            value={search} onChange={(e) => setSearch(e.target.value)} />
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: "100%" }}
+          />
         </div>
-        <button type="submit" className="btn-primary px-6 py-3">SEARCH</button>
+        <button
+          type="submit"
+          className="btn-primary px-6 py-3"
+          style={{
+            transition: "all 0.2s ease",
+            position: "relative",
+            overflow: "hidden",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 0 20px rgba(0,245,255,0.5)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "";
+          }}
+        >
+          SEARCH
+        </button>
       </form>
 
-      {/* Category Filter */}
-      <div
-        className="flex gap-2 overflow-x-auto pb-1 stagger-children"
-        style={{ animationDelay: "0.5s" }}
-      >
-        {CATEGORIES.map((cat) => (
-          <button key={cat} onClick={() => setCategory(cat)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all"
-            style={{
-              fontFamily: "Rajdhani",
-              fontWeight: 700,
-              letterSpacing: "0.05em",
-              border: `1px solid ${category === cat ? "var(--neon)" : "var(--border)"}`,
-              color: category === cat ? "var(--neon)" : "var(--text-muted)",
-              background: category === cat ? "rgba(0,245,255,0.08)" : "transparent",
-              boxShadow: category === cat ? "0 0 15px rgba(0,245,255,0.2)" : "none",
-              transform: category === cat ? "translateY(-1px)" : "none",
-            }}
-          >
-            <span>{CATEGORY_ICONS[cat]}</span> {cat.toUpperCase()}
-          </button>
-        ))}
+      {/* ── Category Filter — with hover animations ── */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {CATEGORIES.map((cat) => {
+          const isActive  = category === cat;
+          const isHovered = hoveredCat === cat;
+          return (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              onMouseEnter={() => setHoveredCat(cat)}
+              onMouseLeave={() => setHoveredCat(null)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm whitespace-nowrap"
+              style={{
+                fontFamily: "Rajdhani",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                border: `1px solid ${isActive ? "var(--neon)" : isHovered ? "rgba(0,245,255,0.5)" : "var(--border)"}`,
+                color: isActive ? "var(--neon)" : isHovered ? "rgba(0,245,255,0.8)" : "var(--text-muted)",
+                background: isActive
+                  ? "rgba(0,245,255,0.08)"
+                  : isHovered
+                  ? "rgba(0,245,255,0.04)"
+                  : "transparent",
+                boxShadow: isActive
+                  ? "0 0 15px rgba(0,245,255,0.25), inset 0 0 10px rgba(0,245,255,0.05)"
+                  : isHovered
+                  ? "0 0 10px rgba(0,245,255,0.15)"
+                  : "none",
+                transform: isActive ? "translateY(-2px)" : isHovered ? "translateY(-1px)" : "none",
+                transition: "all 0.18s ease",
+                cursor: "pointer",
+              }}
+            >
+              <span style={{
+                display: "inline-block",
+                transform: isHovered || isActive ? "scale(1.2) rotate(-5deg)" : "scale(1)",
+                transition: "transform 0.18s ease",
+              }}>
+                {CATEGORY_ICONS[cat]}
+              </span>
+              {cat.toUpperCase()}
+            </button>
+          );
+        })}
       </div>
 
       {/* Results header */}
