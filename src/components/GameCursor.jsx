@@ -8,6 +8,7 @@ export default function GameCursor() {
   const trailCanvasRef = useRef(null);
   const mouse          = useRef({ x: 0, y: 0 });
   const outerPos       = useRef({ x: 0, y: 0 });
+  const innerPos       = useRef({ x: 0, y: 0 });
   const trailPoints    = useRef([]);
 
   useEffect(() => {
@@ -16,26 +17,86 @@ export default function GameCursor() {
     const stopTrail = startTrailCanvas();
 
     if (isTouch) {
-      const dot = document.createElement("div");
-      dot.style.cssText = `
-        position:fixed; width:18px; height:18px;
-        border:2px solid var(--neon); border-radius:50%;
-        pointer-events:none; z-index:99999;
-        transform:translate(-50%,-50%);
-        box-shadow:0 0 12px var(--neon),0 0 24px rgba(0,245,255,0.4);
-        display:none; transition:opacity 0.3s;
+      // ── TOUCH: same crosshair cursor as desktop ──
+      const touchCursor = document.createElement("div");
+      touchCursor.style.cssText = `
+        position: fixed;
+        pointer-events: none;
+        z-index: 99999;
+        display: none;
+        transform: translate(-50%, -50%);
       `;
-      document.body.appendChild(dot);
 
-      const dotCore = document.createElement("div");
-      dotCore.style.cssText = `
-        position:fixed; width:5px; height:5px;
-        background:var(--neon); border-radius:50%;
-        pointer-events:none; z-index:99999;
-        transform:translate(-50%,-50%);
-        box-shadow:0 0 8px var(--neon); display:none;
+      // outer ring (same as desktop cursor-outer)
+      const touchOuter = document.createElement("div");
+      touchOuter.style.cssText = `
+        position: absolute;
+        width: 36px; height: 36px;
+        border: 1.5px solid rgba(0,245,255,0.6);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 10px rgba(0,245,255,0.3), inset 0 0 10px rgba(0,245,255,0.05);
+        transition: width 0.15s, height 0.15s, border-color 0.15s;
       `;
-      document.body.appendChild(dotCore);
+
+      // crosshair H
+      const crossH = document.createElement("div");
+      crossH.style.cssText = `
+        position: absolute;
+        width: 12px; height: 1px;
+        background: var(--neon);
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 4px var(--neon);
+      `;
+
+      // crosshair V
+      const crossV = document.createElement("div");
+      crossV.style.cssText = `
+        position: absolute;
+        width: 1px; height: 12px;
+        background: var(--neon);
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 4px var(--neon);
+      `;
+
+      // inner dot
+      const touchInner = document.createElement("div");
+      touchInner.style.cssText = `
+        position: absolute;
+        width: 5px; height: 5px;
+        background: var(--neon);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 8px var(--neon), 0 0 16px rgba(0,245,255,0.5);
+      `;
+
+      touchOuter.appendChild(crossH);
+      touchOuter.appendChild(crossV);
+      touchCursor.appendChild(touchOuter);
+      touchCursor.appendChild(touchInner);
+      document.body.appendChild(touchCursor);
+
+      // smooth position refs for touch
+      const touchPos    = { x: 0, y: 0 };
+      const touchTarget = { x: 0, y: 0 };
+      const touchOuPos  = { x: 0, y: 0 };
+      let touchRaf      = null;
+
+      const touchLoop = () => {
+        const s = 0.18; // slightly faster than desktop for touch feel
+        const os = 0.10;
+        touchPos.x  += (touchTarget.x - touchPos.x)  * s;
+        touchPos.y  += (touchTarget.y - touchPos.y)  * s;
+        touchOuPos.x += (touchTarget.x - touchOuPos.x) * os;
+        touchOuPos.y += (touchTarget.y - touchOuPos.y) * os;
+        touchCursor.style.left = touchTarget.x + "px";
+        touchCursor.style.top  = touchTarget.y + "px";
+        touchOuter.style.left  = (touchOuPos.x - touchTarget.x) + "px";
+        touchOuter.style.top   = (touchOuPos.y - touchTarget.y) + "px";
+        touchRaf = requestAnimationFrame(touchLoop);
+      };
 
       let hideTimer      = null;
       let sparkInterval  = null;
@@ -45,10 +106,9 @@ export default function GameCursor() {
       const SCROLL_THRESHOLD = 8;
 
       const moveTo = (x, y) => {
-        dot.style.display     = "block";
-        dotCore.style.display = "block";
-        dot.style.left     = x + "px"; dot.style.top     = y + "px";
-        dotCore.style.left = x + "px"; dotCore.style.top = y + "px";
+        touchTarget.x = x;
+        touchTarget.y = y;
+        touchCursor.style.display = "block";
         trailPoints.current.push({ x, y, age: 0 });
         if (trailPoints.current.length > 60) trailPoints.current.shift();
       };
@@ -60,8 +120,17 @@ export default function GameCursor() {
         touchStartX = t.clientX;
         touchStartY = t.clientY;
         hasMoved    = false;
+        // snap to position on first touch
+        touchTarget.x = t.clientX;
+        touchTarget.y = t.clientY;
+        touchOuPos.x  = t.clientX;
+        touchOuPos.y  = t.clientY;
         moveTo(t.clientX, t.clientY);
-        sparkInterval = setInterval(() => spawnSparks(t.clientX, t.clientY, 3), 50);
+        // scale up outer ring on press
+        touchOuter.style.width  = "28px";
+        touchOuter.style.height = "28px";
+        touchOuter.style.borderColor = "rgba(0,245,255,1)";
+        sparkInterval = setInterval(() => spawnSparks(t.clientX, t.clientY, 2), 60);
       };
 
       const onTouchMove = (e) => {
@@ -71,33 +140,42 @@ export default function GameCursor() {
         const dy = Math.abs(t.clientY - touchStartY);
         if (dx > SCROLL_THRESHOLD || dy > SCROLL_THRESHOLD) {
           hasMoved = true;
+          // restore ring size while scrolling
+          touchOuter.style.width  = "36px";
+          touchOuter.style.height = "36px";
+          touchOuter.style.borderColor = "rgba(0,245,255,0.6)";
         }
         moveTo(t.clientX, t.clientY);
         if (!hasMoved) {
-          spawnSparks(t.clientX, t.clientY, 2);
-          sparkInterval = setInterval(() => spawnSparks(t.clientX, t.clientY, 2), 50);
+          spawnSparks(t.clientX, t.clientY, 1);
         }
       };
 
       const onTouchEnd = (e) => {
         clearInterval(sparkInterval);
+        // restore ring
+        touchOuter.style.width  = "36px";
+        touchOuter.style.height = "36px";
+        touchOuter.style.borderColor = "rgba(0,245,255,0.6)";
         if (!hasMoved) {
           const t = e.changedTouches[0];
           aestheticTap(t.clientX, t.clientY);
         }
         hideTimer = setTimeout(() => {
-          dot.style.display = dotCore.style.display = "none";
+          touchCursor.style.display = "none";
           trailPoints.current = [];
-        }, 600);
+        }, 800);
       };
 
+      touchRaf = requestAnimationFrame(touchLoop);
       document.addEventListener("touchstart", onTouchStart, { passive: true });
       document.addEventListener("touchmove",  onTouchMove,  { passive: true });
       document.addEventListener("touchend",   onTouchEnd,   { passive: true });
 
       return () => {
+        cancelAnimationFrame(touchRaf);
         stopBg(); stopTrail();
-        dot.remove(); dotCore.remove();
+        touchCursor.remove();
         clearInterval(sparkInterval);
         document.removeEventListener("touchstart", onTouchStart);
         document.removeEventListener("touchmove",  onTouchMove);
@@ -118,14 +196,22 @@ export default function GameCursor() {
       if (trailPoints.current.length > 60) trailPoints.current.shift();
       spawnSparks(e.clientX, e.clientY, 2);
     };
+
+    // hide when mouse leaves the window
+    const onLeaveWindow = () => {
+      if (cursor) cursor.style.display = "none";
+      trailPoints.current = [];
+    };
+
     const onEnter = () => cursor?.classList.add("hovering");
     const onLeave = () => cursor?.classList.remove("hovering");
     const onDown  = () => { cursor?.classList.add("clicking"); spawnClickBurst(mouse.current.x, mouse.current.y); };
     const onUp    = () => cursor?.classList.remove("clicking");
 
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("mouseup",   onUp);
+    document.addEventListener("mousemove",  onMove);
+    document.addEventListener("mousedown",  onDown);
+    document.addEventListener("mouseup",    onUp);
+    document.addEventListener("mouseleave", onLeaveWindow);
     document.querySelectorAll("a,button,input,select,textarea,[role='button']").forEach((el) => {
       el.addEventListener("mouseenter", onEnter);
       el.addEventListener("mouseleave", onLeave);
@@ -133,23 +219,33 @@ export default function GameCursor() {
 
     let raf;
     const loop = () => {
-      const s = 0.12;
+      const s  = 0.12;
       outerPos.current.x += (mouse.current.x - outerPos.current.x) * s;
       outerPos.current.y += (mouse.current.y - outerPos.current.y) * s;
-      if (innerRef.current) { innerRef.current.style.left = mouse.current.x + "px"; innerRef.current.style.top = mouse.current.y + "px"; }
-      if (outerRef.current) { outerRef.current.style.left = outerPos.current.x + "px"; outerRef.current.style.top = outerPos.current.y + "px"; }
+      if (innerRef.current) {
+        innerRef.current.style.left = mouse.current.x + "px";
+        innerRef.current.style.top  = mouse.current.y + "px";
+      }
+      if (outerRef.current) {
+        outerRef.current.style.left = outerPos.current.x + "px";
+        outerRef.current.style.top  = outerPos.current.y + "px";
+      }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(raf); stopBg(); stopTrail();
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("mouseup",   onUp);
+      document.removeEventListener("mousemove",  onMove);
+      document.removeEventListener("mousedown",  onDown);
+      document.removeEventListener("mouseup",    onUp);
+      document.removeEventListener("mouseleave", onLeaveWindow);
     };
   }, []);
 
+  // ══════════════════════════════════════════
+  //  AESTHETIC TAP EFFECT
+  // ══════════════════════════════════════════
   function aestheticTap(x, y) {
     const numLines = 6;
     for (let i = 0; i < numLines; i++) {
@@ -177,9 +273,9 @@ export default function GameCursor() {
     }
 
     const rings = [
-      { color: "var(--neon)",    size: 8,  delay: 0,   duration: 600 },
-      { color: "var(--plasma)", size: 6,  delay: 80,  duration: 700 },
-      { color: "#fbbf24",       size: 4,  delay: 160, duration: 550 },
+      { color: "var(--neon)",   size: 8, delay: 0,   duration: 600 },
+      { color: "var(--plasma)", size: 6, delay: 80,  duration: 700 },
+      { color: "#fbbf24",       size: 4, delay: 160, duration: 550 },
     ];
     rings.forEach(({ color, size, delay, duration }) => {
       const ring = document.createElement("div");
@@ -196,8 +292,8 @@ export default function GameCursor() {
       `;
       document.body.appendChild(ring);
       ring.animate([
-        { transform: "translate(-50%,-50%) scale(1)",  opacity: 1 },
-        { transform: "translate(-50%,-50%) scale(8)",  opacity: 0 },
+        { transform: "translate(-50%,-50%) scale(1)", opacity: 1 },
+        { transform: "translate(-50%,-50%) scale(8)", opacity: 0 },
       ], { duration, delay, easing: "cubic-bezier(0.2,0,0.8,1)", fill: "forwards" }).onfinish = () => ring.remove();
     });
 
@@ -215,9 +311,9 @@ export default function GameCursor() {
     `;
     document.body.appendChild(diamond);
     diamond.animate([
-      { transform: "translate(-50%,-50%) rotate(45deg) scale(0)", opacity: 1 },
+      { transform: "translate(-50%,-50%) rotate(45deg) scale(0)",   opacity: 1 },
       { transform: "translate(-50%,-50%) rotate(45deg) scale(1.5)", opacity: 1 },
-      { transform: "translate(-50%,-50%) rotate(45deg) scale(0)", opacity: 0 },
+      { transform: "translate(-50%,-50%) rotate(45deg) scale(0)",   opacity: 0 },
     ], { duration: 400, easing: "ease-out" }).onfinish = () => diamond.remove();
 
     const coreDot = document.createElement("div");
@@ -235,19 +331,19 @@ export default function GameCursor() {
     document.body.appendChild(coreDot);
     coreDot.animate([
       { transform: "translate(-50%,-50%) scale(0)", opacity: 1 },
-      { transform: "translate(-50%,-50%) scale(2)",  opacity: 1 },
-      { transform: "translate(-50%,-50%) scale(0)",  opacity: 0 },
+      { transform: "translate(-50%,-50%) scale(2)", opacity: 1 },
+      { transform: "translate(-50%,-50%) scale(0)", opacity: 0 },
     ], { duration: 350, easing: "ease-out" }).onfinish = () => coreDot.remove();
 
     for (let i = 0; i < 8; i++) {
-      const angle     = (i / 8) * Math.PI * 2;
-      const orbitR    = 30;
-      const colors    = ["var(--neon)", "var(--plasma)", "#fbbf24", "#ff6b35", "#ffffff"];
-      const color     = colors[i % colors.length];
-      const px        = x + Math.cos(angle) * orbitR;
-      const py        = y + Math.sin(angle) * orbitR;
-      const particle  = document.createElement("div");
-      const pSize     = Math.random() * 4 + 3;
+      const angle    = (i / 8) * Math.PI * 2;
+      const orbitR   = 30;
+      const colors   = ["var(--neon)", "var(--plasma)", "#fbbf24", "#ff6b35", "#ffffff"];
+      const color    = colors[i % colors.length];
+      const px       = x + Math.cos(angle) * orbitR;
+      const py       = y + Math.sin(angle) * orbitR;
+      const particle = document.createElement("div");
+      const pSize    = Math.random() * 4 + 3;
       particle.style.cssText = `
         position: fixed;
         left: ${x}px; top: ${y}px;
@@ -263,7 +359,7 @@ export default function GameCursor() {
       const flyAngle = angle + (Math.random() - 0.5) * 0.8;
       const flyDist  = 80 + Math.random() * 60;
       particle.animate([
-        { left: `${x}px`,  top: `${y}px`,  opacity: 1, transform: "translate(-50%,-50%) scale(1)" },
+        { left: `${x}px`,  top: `${y}px`,  opacity: 1, transform: "translate(-50%,-50%) scale(1)"   },
         { left: `${px}px`, top: `${py}px`, opacity: 1, transform: "translate(-50%,-50%) scale(1.3)" },
         {
           left: `${x + Math.cos(flyAngle) * flyDist}px`,
@@ -288,14 +384,14 @@ export default function GameCursor() {
     document.body.appendChild(shock);
     shock.animate([
       { transform: "translate(-50%,-50%) scale(1)",  opacity: 0.8 },
-      { transform: "translate(-50%,-50%) scale(15)", opacity: 0 },
+      { transform: "translate(-50%,-50%) scale(15)", opacity: 0   },
     ], { duration: 600, easing: "ease-out" }).onfinish = () => shock.remove();
   }
 
   function spawnSparks(x, y, count = 2) {
     for (let i = 0; i < count; i++) {
-      const el   = document.createElement("div");
-      const size = Math.random() * 4 + 2;
+      const el     = document.createElement("div");
+      const size   = Math.random() * 4 + 2;
       const colors = ["var(--neon)", "var(--plasma)", "#fff", "#fbbf24", "#ff6b35"];
       const color  = colors[Math.floor(Math.random() * colors.length)];
       el.style.cssText = `
@@ -325,7 +421,7 @@ export default function GameCursor() {
     const canvas = trailCanvasRef.current;
     if (!canvas) return () => {};
     const ctx = canvas.getContext("2d");
-    let w = canvas.width = window.innerWidth;
+    let w = canvas.width  = window.innerWidth;
     let h = canvas.height = window.innerHeight;
     const onResize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
     window.addEventListener("resize", onResize);
@@ -370,7 +466,7 @@ export default function GameCursor() {
     const canvas = canvasRef.current;
     if (!canvas) return () => {};
     const ctx = canvas.getContext("2d");
-    let w = canvas.width = window.innerWidth;
+    let w = canvas.width  = window.innerWidth;
     let h = canvas.height = window.innerHeight;
     const onResize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
     window.addEventListener("resize", onResize);
@@ -432,9 +528,9 @@ export default function GameCursor() {
 
   return (
     <>
-      <canvas ref={canvasRef} style={{ position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:0,opacity:0.45 }} />
+      <canvas ref={canvasRef}      style={{ position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:0,opacity:0.45 }} />
       <canvas ref={trailCanvasRef} style={{ position:"fixed",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:2 }} />
-      <div id="game-cursor" ref={cursorRef}>
+      <div id="game-cursor" ref={cursorRef} style={{ display:"none" }}>
         <div ref={outerRef} className="cursor-outer" style={{ position:"fixed" }}>
           <div className="cursor-crosshair-h" />
           <div className="cursor-crosshair-v" />
